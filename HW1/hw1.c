@@ -18,123 +18,104 @@
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
 
-#define BUFF_SIZE 64
-#define VU 115
-#define VD 114
+#define SW1 139
+#define SW2 102
+#define SW3 158
+#define SW4 217
+#define VOLUME_UP 115
+#define VOLUME_DOWN 114
+#define SW_QUIT 116
 
-void die(char *s);
-void input_process(void);
-void output_process(void);
-void main_process(void);
+#define IO_BASE_ADDR 0x11400000
+#define CON_OFFSET 0x40
+#define DAT_OFFSET 0x44
 
-int mode_index;
-char *mode[3] = {"stop watch", "text editor", "extra"};
+#define FND0	0x00
+#define FND1	0x01
+#define FND2	0x02
+#define FND3	0x03
+#define FND4	0x04
+#define FND5	0x05
+#define FND6	0x06
+#define FND7	0x07
+#define FND8	0x08
+#define FND9	0x09
+#define FND_OFF	0x0A
+#define FND_S	0x0B
+#define FND_T	0x0C
+#define FND_O	0x0D
+#define FND_P	0x0E
 
-int main(int argc, char *argv[]){
-	pid_t pid;
-	mode_index = 0;
+#define IO_GPL_BASE_ADDR 0x11000000
+#define FND_GPL2CON 0x0100
+#define FND_GPL2DAT 0x0104
 
-	pid = fork();
+#define IO_GPE_BASE_ADDR 0x11400000
+#define FND_GPE3CON 0x00140
+#define FND_GPE3Dat 0x00144
 
-	switch(pid){
-		case -1:
-			printf("Create child process failed\n");
-			return -1;
-		case 0:
-			input_process();
-		default:
-			// Main process
-			pid = fork();
-			switch(pid){
-				case 0:
-					output_process();
-				default:
-					main_process();
-			}
-	}
+int shmid;
+key_t key;
+char *shm, *s;
+
+int main_process(void){
 	return 0;
 }
 
-void die(char *s){
-	perror(s);
-	exit(1);
+int input_process(void){
+	return 0;
 }
 
-void main_process(void){
-	int shmid;
-	key_t key;
-	int *shm, *s;
+int output_process(void){
+	return 0;
+}
+
+int main(int argc, char *argv[]){
+	pid_t pid;
 
 	// Naming shared memory segment
 	key = 1111;
 
 	// Create the segment
-	if((shmid = shmget(key, 4, IPC_CREAT | 0666)) < 0)
-		die("shmget");
-
-	// Attaching the segment to memory space
-	if((shm = shmat(shmid, NULL, 0)) == (int *)-1)
-		die("shmat");
-
-	while(1){
-		if(*shm != '*'){
-			mode_index = *s;
-			printf("%d\n", mode_index);
-			*shm = '*';
-		}
+	if((shmid = shmget(key, 1024, IPC_CREAT | 0666)) < 0){
+		perror("shmget");
+		exit(1);
 	}
-}
-
-void input_process(void){
-	int shmid;
-	key_t key;
-	int *shm, *s;
-
-	struct input_event ev[BUFF_SIZE];
-	int fd, rd, value, size = sizeof(struct input_event);
-	char *device = "/dev/input/event1";
-
-	// Naming shared memory segment
-	key = 1111;
-
-	// Create the segment
-	if((shmid = shmget(key, 4, IPC_CREAT | 0666)) < 0)
-		die("shmget");
 
 	// Attaching the segment to memory space
-	if((shm = shmat(shmid, NULL, 0)) == (int *)-1)
-		die("shmat");
+	if((shm = shmat(shmid, NULL, 0)) == (char *)-1){
+		perror("shmat");
+		exit(1);
+	}
 
 	s = shm;
 
-	if((fd = open(device, O_RDONLY)) == -1){
-		printf("%s is not a valid device\n", device);
-		exit(1);
-	}
+	pid = fork();
+	switch(pid){
+		case -1:
+			printf("Process create failed\n");
+			return -1;
 
-	while(1){
-		rd = read(fd, ev, size*BUFF_SIZE);
+		case 0:
+			// Input process
+			input_process();
 
-		value = ev[0].value;
+		default:
+			pid = fork();
+			switch(pid){
+				case -1:
+					printf("Process create failed\n");
+					return -1;
 
-		if(value == KEY_PRESS){
-			if(ev[0].code == VU){
-				mode_index++;
-				if(mode_index == 3)
-					mode_index = 0;
-				*s = mode_index;
-			} else if(ev[0].code == VD){
-				mode_index--;
-				if(mode_index == -1)
-					mode_index = 2;
-				*s = mode_index;
+				case 0:
+					// Output process
+					output_process();
+
+				default:
+					// Main process
+					main_process();
 			}
-		}
 	}
-}
 
-void output_process(void){
-	while(1){
-		exit(1);
-	}
+	return 0;
 }
