@@ -4,7 +4,6 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/stat.h>
-#include <linux/input.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +13,7 @@
 #include <termios.h>
 #include <dirent.h>
 #include <errno.h>
+#include <string.h>
 
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
@@ -54,41 +54,62 @@
 #define FND_GPE3CON 0x00140
 #define FND_GPE3Dat 0x00144
 
+int input_shmid, output_shmid;
+key_t input_key, output_key;
+char *input_shm, *output_shm, *s;
+
 int shmid;
 key_t key;
 char *shm, *s;
 
 int main_process(void){
+	while(1){
+		if(*shm != '*' && *shm != '!'){
+		}
+	}
 	return 0;
 }
 
 int input_process(void){
+	s = shm;
+	while(1){
+		scanf("%s", s);
+	}
+
 	return 0;
 }
 
 int output_process(void){
+	while(1){
+		if(*shm == '*'){
+			s = shm;
+			for(s++;*s!='\0';s++)
+				putchar(*s);
+			putchar('\n');
+
+			*shm = '!';
+		}
+	}
 	return 0;
 }
 
 int main(int argc, char *argv[]){
 	pid_t pid;
 
-	// Naming shared memory segment
+	// Naming shared memory segments
 	key = 1111;
 
-	// Create the segment
+	// Create the segments
 	if((shmid = shmget(key, 1024, IPC_CREAT | 0666)) < 0){
 		perror("shmget");
 		exit(1);
 	}
 
-	// Attaching the segment to memory space
+	// Attaching the segments to memory space
 	if((shm = shmat(shmid, NULL, 0)) == (char *)-1){
 		perror("shmat");
 		exit(1);
 	}
-
-	s = shm;
 
 	pid = fork();
 	switch(pid){
