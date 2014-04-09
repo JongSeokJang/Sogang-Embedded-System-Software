@@ -144,6 +144,9 @@ int input_process(void){
 	return 0;
 }
 
+// Function for stop watch
+// SW2 key to reset, SW3 key to stop, SW4 key to start
+// TODO Function is still working on
 int func_stopwatch(int code){
 	int i;
 	if(code == 2){
@@ -191,16 +194,14 @@ int main_process(void){
 int output_process(void){
 	int fpga_dot, mode_num, str_size;
 
-	// Test
-	int fnd_fd;
+	// Variables for FND
+	int fnd_fd, ttime, i;
 	void *gpladdr, *gpe_addr;
 	unsigned long *gpe_con=0;
 	unsigned long *gpe_dat=0;
 	unsigned long *gpl_con=0;
 	unsigned long *gpl_dat=0;
-	int ttime, i;
 	float start_time, end_time;
-	// Test
 
 	fpga_dot = open("/dev/fpga_dot", O_WRONLY);
 	if(fpga_dot < 0){
@@ -275,84 +276,6 @@ int output_process(void){
 
 			time(&end_time);
 		}
-
-		/*
-		// Output for stop watch mode
-		if(mode_num == 1 && *output_shm != '*'){
-			char number, number2;
-			int position, value;
-			unsigned short temp;
-			unsigned char temp1, temp2;
-
-			s = output_shm;
-
-			number = (char)atoi(&output_shm[0]);
-			printf("%c!!\n", number);
-			switch(number){
-				case 0:
-					position = 0x96;
-					break;
-				case 1:
-					position = 0x02;
-					break;
-				case 2:
-					position = 0x04;
-					break;
-				case 3:
-					position = 0x10;
-					break;
-				case 4:
-					position = 0x80;
-					break;
-				case 5:
-					position = 0x12;
-					break;
-			}
-
-			*s++;
-			number2 = (char)atoi(s);
-			printf("%c!!!!\n", number2);
-			switch(number2){
-				case 0:
-					value = FND0;
-					break;
-				case 1:
-					value = FND1;
-					break;
-				case 2:
-					value = FND2;
-					break;
-				case 3:
-					value = FND3;
-					break;
-				case 4:
-					value = FND4;
-					break;
-				case 5:
-					value = FND5;
-					break;
-				case 6:
-					value = FND6;
-					break;
-				case 7:
-					value = FND7;
-					break;
-				case 8:
-					value = FND8;
-					break;
-				case 9:
-					value = FND9;
-					break;
-			}
-
-			temp1 = position;
-			temp2 = value;
-			temp = temp + temp1;
-			temp = (temp<<8)|temp2;
-			write(fnd_fd, &temp, sizeof(short));
-
-			*output_shm = '*';
-		}*/
 
 		/*if(*output_shm != '*'){
 			for(s=output_shm;*s!='\0';s++)
