@@ -2,12 +2,16 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <linux/input.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <time.h>
+#include <dirent.h>
+#include <errno.h>
 
 #define IO_GPL_BASE_ADDR 0x11000000
 #define FND_GPL2CON 0x0100
@@ -140,7 +144,7 @@ int main_process(void){
 }
 
 int output_process(void){
-	int fnd_fd, i;
+	int fnd_fd, i, ttime;
 	void *gpl_addr, *gpe_addr;
 	time_t start_time, end_time;
 	unsigned long *gpe_con = 0;
