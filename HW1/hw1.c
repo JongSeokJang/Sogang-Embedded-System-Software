@@ -15,6 +15,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
+#include <wait.h>
 
 #include "./fpga_dot_font.h"
 
@@ -58,6 +59,57 @@
 int input_shmid, output_shmid, mode_shmid;
 key_t input_key, output_key, mode_key;
 char *input_shm, *output_shm, *mode_shm, *s;
+
+/*typedef union{
+	int val;
+	struct semid_ds *buf;
+	ushort *array;
+} semun;
+
+int initsem(key_t semkey){
+	int status =0, semid;
+	if((semid = semget(semkey, 1, IPC_CREAT|IPC_EXCL|0060)) == -1){
+		if(errno == EEXIST)
+			semid = semget(semkey, 1, 0);
+	}
+	else{
+		semun arg;
+		arg.val = 1;
+		status = semctl (semid, 0, 1024, arg);
+	}
+	if(semid == -1||status == -1){
+		perror("failed");
+		return -1;
+	}
+	return semid;
+}
+
+int p(int semid){
+	struct sembuf p_buf;
+
+	p_buf.sem_num = 0;
+	p_buf.sem_op = -1;
+	p_buf.sem_flg = SEM_UNDO;
+
+	if(semop(semid, &p_buf, 1) == -1){
+		perror("p failed");
+		exit(1);
+	}
+	return 0;
+}
+
+int v(int semid){
+	struct sembuf v_buf;
+	v_buf.sem_num = 0;
+	v_buf.sem_op = 1;
+	v_buf.sem_flg = SEM_UNDO;
+
+	if(semop(semid, &b_buf, 1) == -1){
+		perror("v failed");
+		exit (1);
+	}
+	return 0;
+}*/
 
 int input_process(void){
 	struct input_event ev[BUFF_SIZE];
@@ -164,7 +216,12 @@ int main_process(void){
 			case 1:
 				if(*input_shm != '*'){
 					int code = atoi(input_shm);
-					func_stopwatch(code);
+					if(code == 2)
+						*output_shm = '2';
+					if(code == 3)
+						*output_shm = '3';
+					if(code == 4)
+						*output_shm = '4';
 					*input_shm = '*';
 				}
 				break;
@@ -196,6 +253,50 @@ int output_process(void){
 		*mode_shm = '0';
 	}
 
+	// Variables and initialization for FND
+	int fnd_fd, ttime, i;
+	void *gpl_addr, *gpe_addr;
+	unsigned long *gpe_con = 0;
+	unsigned long *gpe_dat = 0;
+	unsigned long *gpl_con = 0;
+	unsigned long *gpl_dat = 0;
+	time_t start_time, end_time;
+	unsigned long fnd_number[10] = {0x02, 0x9F, 0x25, 0x0D, 0x99, 0x49, 0xC1, 0x1F, 0x01, 0x09};
+
+	fnd_fd = open("/dev/mem", O_RDWR|O_SYNC);
+	if(fnd_fd < 0){
+		perror("/dev/mem open error");
+		*mode_shm = '0';
+	}
+	gpl_addr = (unsigned long *)mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fnd_fd, IO_GPL_BASE_ADDR);
+	if(gpl_addr != NULL){
+		gpl_con = (unsigned long *)(gpl_addr + FND_GPL2CON);
+		gpl_dat = (unsigned long *)(gpl_addr + FND_GPL2DAT);
+	}
+	if(*gpl_con == (unsigned long)-1 || *gpl_dat == (unsigned long)-1){
+		perror("mmap error!");
+		*mode_shm = '0';
+	}
+	gpe_addr = (unsigned long *)mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fnd_fd, IO_GPE_BASE_ADDR);
+	if(gpe_addr != NULL){
+		gpe_con = (unsigned long *)(gpe_addr + FND_GPE3CON);
+		gpe_dat = (unsigned long *)(gpe_addr + FND_GPE3DAT);
+	}
+	if(*gpe_con == (unsigned long)-1 || *gpe_dat == (unsigned long)-1){
+		perror("mmap error!");
+		*mode_shm = '0';
+	}
+
+	ttime=0;
+	*gpe_dat = 0x96;
+	*gpl_dat = FND0;
+
+	/*key_t skey = 0x200;
+	int semid;
+	pid_t pid = getpid();
+	if((semid = initsem(skey))<0)
+		exit(0);*/
+
 	while(1){
 		mode_num = atoi(mode_shm);
 
@@ -207,7 +308,41 @@ int output_process(void){
 		}
 
 		if(mode_num == 1){
-			stop_watch_mode();
+			while(*mode_shm == '1' && *output_shm == '4'){
+				ttime++;
+				time(&start_time);
+				end_time = 0;
+
+				//p(semid);
+				while(difftime(end_time, start_time) <= 0.99999){
+					for(i=0;i<500;i++){
+						*gpe_dat = 0x02;
+						*gpl_dat = fnd_number[ttime/60/10];
+						//*gpl_dat = FND0;
+					}
+
+					for(i=0;i<500;i++){
+						*gpe_dat = 0x04;
+						*gpl_dat = fnd_number[ttime/60%10];
+						//*gpl_dat = FND0;
+					}
+
+					for(i=0;i<500;i++){
+						*gpe_dat = 0x10;
+						*gpl_dat = fnd_number[ttime%60/10];
+						//*gpl_dat = FND0;
+					}
+
+					for(i=0;i<500;i++){
+						*gpe_dat = 0x80;
+						*gpl_dat = fnd_number[ttime%60%10];
+						//*gpl_dat = FND4;
+					}
+
+					time(&end_time);
+				}
+				//v(semid);
+			}
 		}
 
 		/*if(*output_shm != '*'){
@@ -221,78 +356,14 @@ int output_process(void){
 	return 0;
 }
 
-int stop_watch_mode(void){
-	int fnd_fd, ttime, i;
-	void *gpladdr, *gpe_addr;
-	unsigned long *gpe_con=0;
-	unsigned long *gpe_dat=0;
-	unsigned long *gpl_con=0;
-	unsigned long *gpl_dat=0;
-	float start_time, end_time;
+//	*gpl_con = 0x11111111;
+//	*gpe_con = 0x10010110;
 
-	fnd_fd = open("/dev/mem", O_RDWR|O_SYNC);
-	if(fnd_fd < 0){
-		perror("/dev/mem open error");
-		*mode_shm = '0';
-	}
-	gpladdr = (unsigned long *)mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fnd_fd, IO_GPL_BASE_ADDR);
-	if(gpladdr != NULL){
-		gpl_con = (unsigned long *)(gpladdr + FND_GPL2CON);
-		gpl_dat = (unsigned long *)(gpladdr + FND_GPL2DAT);
-	}
-	if(*gpl_con == (unsigned long)-1 || *gpl_dat == (unsigned long)-1){
-		perror("mmap error!");
-		*mode_shm = '0';
-	}
-	gpe_addr = (unsigned long *)mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fnd_fd, IO_GPE_BASE_ADDR);
-	if(gpe_addr != NULL){
-		gpe_con = (unsigned long *)(gpe_addr + FND_GPE3CON);
-		gpe_dat = (unsigned long *)(gpe_addr + FND_GPE3DAT);
-	}
-	if(*gpe_con == (unsigned long)-1 || *gpe_dat == (unsigned long)-1){
-		perror("mmap error!\n");
-		*mode_shm = '0';
-	}
-
-	// TODO Modify this part? or merge to output process?
-	*gpl_con = 0x11111111;
-	*gpe_con = 0x10010110;
-
-	ttime = 0;
-	*gpl_dat = 0x02;
-	*gpl_dat = 0x02;
-	*gpe_dat = 0x96;
-	sleep(1);
-
-	while(1){
-		ttime++;
-		time(&start_time);
-		end_time = 0;
-
-		// Root for one second approximately
-		while(difftime(end_time, start_time) <= 0.99999){
-			for(i=0;i<500;i++){	// *0 Minute
-				*gpe_dat = 0x02;
-				*gpl_dat = 0x9F;
-			}
-			for(i=0;i<500;i++){	// * Minute
-				*gpe_dat = 0x04;
-				*gpl_dat = 0x25;
-			}
-			for(i=0;i<500;i++){	// *0 Second
-				*gpe_dat = 0x10;
-				*gpl_dat = 0x0D;
-			}
-			for(i=0;i<500;i++){	// * Second
-				*gpe_dat = 0x80;
-				*gpl_dat = 0x99;
-			}
-
-			time(&end_time);
-		}
-
-	return 0;
-}
+//	ttime = 0;
+//	*gpl_dat = 0x02;
+//	*gpl_dat = 0x02;
+//	*gpe_dat = 0x96;
+//	sleep(1);
 
 int init_shared_memory(void){
 	// Naming shared memory segments
@@ -330,6 +401,8 @@ int init_shared_memory(void){
 
 	// Initialize mode to default(1)
 	*mode_shm = '1';
+	*input_shm = '*';
+	*output_shm = '*';
 }
 
 int main(int argc, char *argv[]){
