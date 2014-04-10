@@ -10,4 +10,5 @@
 
 	'14.04.10.
 		- Modified some of define variables (FND for mmap)
-		- 
+		- Basic stop watch function is working with mode chaning
+		- Renewed code for more readability
