@@ -33,21 +33,17 @@
 #define CON_OFFSET 0x40
 #define DAT_OFFSET 0x44
 
-#define FND0	0x00
-#define FND1	0x01
-#define FND2	0x02
-#define FND3	0x03
-#define FND4	0x04
-#define FND5	0x05
-#define FND6	0x06
-#define FND7	0x07
-#define FND8	0x08
+#define FND0	0x02
+#define FND1	0x9F
+#define FND2	0x25
+#define FND3	0x0D
+#define FND4	0x99
+#define FND5	0x49
+#define FND6	0xC1
+#define FND7	0x1F
+#define FND8	0x01
 #define FND9	0x09
-#define FND_OFF	0x0A
-#define FND_S	0x0B
-#define FND_T	0x0C
-#define FND_O	0x0D
-#define FND_P	0x0E
+#define FND_OFF	0xFF
 
 #define IO_GPL_BASE_ADDR 0x11000000
 #define FND_GPL2CON 0x0100
@@ -144,9 +140,7 @@ int input_process(void){
 	return 0;
 }
 
-// Function for stop watch
-// SW2 key to reset, SW3 key to stop, SW4 key to start
-// TODO Function is still working on
+// TODO Do I need this func???
 int func_stopwatch(int code){
 	int i;
 	if(code == 2){
@@ -192,9 +186,42 @@ int main_process(void){
 }
 
 int output_process(void){
+	// These variables are temporary use only, except mode_num
 	int fpga_dot, mode_num, str_size;
 
-	// Variables for FND
+	// This function is temporary use only
+	fpga_dot = open("/dev/fpga_dot", O_WRONLY);
+	if(fpga_dot < 0){
+		perror("FPGA dot driver open failed\n");
+		*mode_shm = '0';
+	}
+
+	while(1){
+		mode_num = atoi(mode_shm);
+
+		if(mode_num == 0)
+			return 0;
+		else{	// This else statement is temporary use only
+			str_size = sizeof(fpga_number[mode_num]);
+			write(fpga_dot, fpga_number[mode_num], str_size);
+		}
+
+		if(mode_num == 1){
+			stop_watch_mode();
+		}
+
+		/*if(*output_shm != '*'){
+			for(s=output_shm;*s!='\0';s++)
+				putchar(*s);
+			putchar('\n');
+
+			*output_shm = '*';
+		}*/
+	}
+	return 0;
+}
+
+int stop_watch_mode(void){
 	int fnd_fd, ttime, i;
 	void *gpladdr, *gpe_addr;
 	unsigned long *gpe_con=0;
@@ -202,12 +229,6 @@ int output_process(void){
 	unsigned long *gpl_con=0;
 	unsigned long *gpl_dat=0;
 	float start_time, end_time;
-
-	fpga_dot = open("/dev/fpga_dot", O_WRONLY);
-	if(fpga_dot < 0){
-		perror("FPGA dot driver open failed\n");
-		*mode_shm = '0';
-	}
 
 	fnd_fd = open("/dev/mem", O_RDWR|O_SYNC);
 	if(fnd_fd < 0){
@@ -233,6 +254,7 @@ int output_process(void){
 		*mode_shm = '0';
 	}
 
+	// TODO Modify this part? or merge to output process?
 	*gpl_con = 0x11111111;
 	*gpe_con = 0x10010110;
 
@@ -243,33 +265,25 @@ int output_process(void){
 	sleep(1);
 
 	while(1){
-		mode_num = atoi(mode_shm);
-
-		if(mode_num == 0)
-			return 0;
-		else{
-			str_size = sizeof(fpga_number[mode_num]);
-			write(fpga_dot, fpga_number[mode_num], str_size);
-		}
-
 		ttime++;
 		time(&start_time);
 		end_time = 0;
 
+		// Root for one second approximately
 		while(difftime(end_time, start_time) <= 0.99999){
-			for(i=0;i<500;i++){
+			for(i=0;i<500;i++){	// *0 Minute
 				*gpe_dat = 0x02;
 				*gpl_dat = 0x9F;
 			}
-			for(i=0;i<500;i++){
+			for(i=0;i<500;i++){	// * Minute
 				*gpe_dat = 0x04;
 				*gpl_dat = 0x25;
 			}
-			for(i=0;i<500;i++){
+			for(i=0;i<500;i++){	// *0 Second
 				*gpe_dat = 0x10;
 				*gpl_dat = 0x0D;
 			}
-			for(i=0;i<500;i++){
+			for(i=0;i<500;i++){	// * Second
 				*gpe_dat = 0x80;
 				*gpl_dat = 0x99;
 			}
@@ -277,14 +291,6 @@ int output_process(void){
 			time(&end_time);
 		}
 
-		/*if(*output_shm != '*'){
-			for(s=output_shm;*s!='\0';s++)
-				putchar(*s);
-			putchar('\n');
-
-			*output_shm = '*';
-		}*/
-	}
 	return 0;
 }
 
