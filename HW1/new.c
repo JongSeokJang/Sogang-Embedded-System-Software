@@ -2,7 +2,6 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <linux/input.h>
 
@@ -12,6 +11,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <time.h>
 
 #define IO_GPL_BASE_ADDR 0x11000000
 #define FND_GPL2CON 0x0100
@@ -181,7 +181,7 @@ int output_process(void){
 			if(*output_shm == '*'){
 				ttime = 0;
 				*gpe_dat = 0x96;
-				*gpl_dat = 0x02;
+				*gpl_dat = 0x03;
 			} else{
 				while(*output_shm == '4'){
 					time(&start_time);
@@ -195,7 +195,7 @@ int output_process(void){
 
 						for(i=0;i<500;i++){
 							*gpe_dat = 0x04;
-							*gpl_dat = fnd_number[ttime/60%10];
+							*gpl_dat = fnd_number[ttime/60%10]-0x01;
 						}
 
 						for(i=0;i<500;i++){
