@@ -30,6 +30,9 @@
 #define SW2 102
 #define SW3 158
 #define SW4 217
+#define SW_UP 115
+#define SW_DOWN 114
+#define SW_QUIT 116
 
 int input_shmid, output_shmid, mode_shmid;
 key_t input_key, output_key, mode_key;
@@ -39,6 +42,7 @@ int input_process(void);
 int output_process(void);
 int main_process(void);
 void die(char *);
+void init_shared(void);
 int shared_memory(void);
 
 int main(int argc, char *argv[]){
@@ -79,6 +83,11 @@ void die(char *str){
 	perror(str);
 	*mode_shm = '0';
 	exit(1);
+}
+
+void init_shared(void){
+	*input_shm = '*';
+	*output_shm = '*';
 }
 
 int shared_memory(void){
@@ -124,12 +133,50 @@ int input_process(void){
 
 		// key is pressed
 		if(ev[0].value == KEY_PRESS){
-			if(ev[0].code == SW2)
-				*output_shm = '2';
-			if(ev[0].code == SW3)
-				*output_shm = '3';
-			if(ev[0].code == SW4)
-				*output_shm = '4';
+			// mode change upward
+			if(ev[0].code == SW_UP){
+				if(*mode_shm == '1')
+					*mode_shm = '2';
+				else if(*mode_shm = '2')
+					*mode_shm = '3';
+				else
+					*mode_shm = '1';
+
+				init_shared();
+			}
+
+			// mode change downward
+			if(ev[0].code == SW_DOWN){
+				if(*mode_shm == '1')
+					*mode_shm = '3';
+				else if(*mode_shm == '2')
+					*mode_shm = '1';
+				else
+					*mode_shm = '2';
+
+				init_shared();
+			}
+
+			// stop-watch button input
+			if(*mode_shm == '1'){
+				if(ev[0].code == SW2)
+					*output_shm = '2';
+				if(ev[0].code == SW3)
+					*output_shm = '3';
+				if(ev[0].code == SW4)
+					*output_shm = '4';
+			}
+
+			// text editor button input
+			if(*mode_shm == '2'){
+				// fpga switch driver open
+				// fpga switch == keypad
+				// two button input must be work properly
+			}
+
+			// custom mode button input
+			if(*mode_shm == '3'){
+			}
 		}
 	}
 	return 0;
@@ -178,15 +225,17 @@ int output_process(void){
 		// stop-watch mode
 		if(*mode_shm == '1'){
 			// initialize timer
-			if(*output_shm == '*'){
+			if(*output_shm == '*' || *output_shm == '2'){
 				ttime = 0;
 				*gpe_dat = 0x96;
 				*gpl_dat = 0x03;
 			} else{
+				// start timer
 				while(*output_shm == '4'){
 					time(&start_time);
 					end_time = 0;
 
+					// this will take approximately one second
 					while(difftime(end_time, start_time) <= 0.99999){
 						for(i=0;i<500;i++){
 							*gpe_dat = 0x02;
@@ -214,6 +263,22 @@ int output_process(void){
 					ttime++;
 				}
 			}
+		}
+
+		// text editor mode
+		if(*mode_shm == '2'){
+			printf("Now is mode 2\n");
+			sleep(3);
+
+			// fpga-fnd print count for number of key pressed
+			// display text on lcd display
+			// dot matrix for alphabet mode and numeric mode
+		}
+
+		// custom mode
+		if(*mode_shm == '3'){
+			printf("Now is mode 3\n");
+			sleep(3);
 		}
 	}
 
