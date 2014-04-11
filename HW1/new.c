@@ -146,6 +146,8 @@ int input_process(void){
 	buff_size = sizeof(push_sw_buff);
 
 	while(*mode_shm != '0'){
+		// TODO one more fork for mode switching???
+		// TODO test if this affect while statement
 		if((rd = read(fd, ev, size*BUFF_SIZE)) < size)
 			die("read()");
 
