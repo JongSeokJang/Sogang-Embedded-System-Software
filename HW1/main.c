@@ -230,101 +230,13 @@ int input_process(void){
 
 			// copy input to shared memory only when data is in
 			if(flag == 1){
+				usleep(300000);
 				s = input_shm;
 				strcpy(s, temp);
 			}
 		}
 	}
 
-	/*
-	struct input_event ev[BUFF_SIZE];
-	int fd, rd, value, size = sizeof(struct input_event);
-
-	int switch_dev, buff_size, i, flag;
-	unsigned char push_sw_buff[MAX_BUTTON];
-
-	if((fd = open("/dev/input/event1", O_RDONLY)) < 0)
-		die("/dev/input/event1 open error");
-
-	// open push switch device
-	if((switch_dev = open("/dev/fpga_push_switch", O_RDWR)) < 0)
-		die("/dev/fpga_push_switch open error");
-	buff_size = sizeof(push_sw_buff);
-
-	while(*mode_shm != '0'){
-		// TODO one more fork for mode switching???
-		// TODO test if this affect while statement
-		if((rd = read(fd, ev, size*BUFF_SIZE)) < size)
-			die("read()");
-
-		// key is pressed
-		if(ev[0].value == KEY_PRESS){
-			// stop-watch button input
-			if(*mode_shm == '1'){
-				if(ev[0].code == SW2)
-					*output_shm = '2';
-				if(ev[0].code == SW3)
-					*output_shm = '3';
-				if(ev[0].code == SW4)
-					*output_shm = '4';
-			}
-
-			// mode change upward
-			if(ev[0].code == SW_UP){
-				if(*mode_shm == '1')
-					*mode_shm = '2';
-				else if(*mode_shm == '2')
-					*mode_shm = '3';
-				else
-					*mode_shm = '1';
-
-				init_shared();
-			}
-
-			// mode change downward
-			if(ev[0].code == SW_DOWN){
-				if(*mode_shm == '1')
-					*mode_shm = '3';
-				else if(*mode_shm == '2')
-					*mode_shm = '1';
-				else
-					*mode_shm = '2';
-
-				init_shared();
-			}
-
-			if(ev[0].code == SW_QUIT)
-				*mode_shm = '0';
-
-			// custom mode button input
-			if(*mode_shm == '3'){
-			}
-		}
-
-		// text editor switch button input
-		if(*mode_shm == '2'){
-			while(*input_shm == '*'){
-				char temp[10];
-
-				read(switch_dev, &push_sw_buff, buff_size);
-				flag = 0;
-				for(i=0;i<MAX_BUTTON;i++){
-					if(push_sw_buff[i] == 1){
-						temp[i] = '1';
-						flag = 1;
-					}
-					else
-						temp[i] = '0';
-				}
-
-				// copy input to shared memory only when data is in
-				if(flag == 1){
-					s = input_shm;
-					strcpy(s, temp);
-				}
-			}
-		}
-	}*/
 	return 0;
 }
 
@@ -342,13 +254,13 @@ int main_process(void){
 
 				if(temp[4] == '1' && temp[5] == '1'){
 					if(Alpha_Num_mode == 0){
-						temp[0] = 'A';
-						temp[1] = '\0';
+						temp[0] = '*';
+						temp[1] = 'A';
 						Alpha_Num_mode = 1;
 					}
 					else{
-						temp[0] = 'N';
-						temp[1] = '\0';
+						temp[0] = '*';
+						temp[1] = 'N';
 						Alpha_Num_mode = 0;
 					}
 				}
@@ -357,7 +269,6 @@ int main_process(void){
 				printf("temp:%s\n", temp);
 			}
 		}
-		sleep(0.1);
 	}
 	return 0;
 }
@@ -432,22 +343,22 @@ int output_process(void){
 
 					// this will take approximately one second
 					while(difftime(end_time, start_time) <= 0.99999){
-						for(i=0;i<500;i++){
+						for(i=0;i<400;i++){
 							*gpe_dat = 0x02;
 							*gpl_dat = fnd_number[ttime/60/10];
 						}
 
-						for(i=0;i<500;i++){
+						for(i=0;i<400;i++){
 							*gpe_dat = 0x04;
 							*gpl_dat = fnd_number[ttime/60%10]-0x01;
 						}
 
-						for(i=0;i<500;i++){
+						for(i=0;i<400;i++){
 							*gpe_dat = 0x10;
 							*gpl_dat = fnd_number[ttime%60/10];
 						}
 
-						for(i=0;i<500;i++){
+						for(i=0;i<400;i++){
 							*gpe_dat = 0x80;
 							*gpl_dat = fnd_number[ttime%60%10];
 						}
@@ -475,15 +386,13 @@ int output_process(void){
 		// text editor mode
 		if(*mode_shm == '2'){
 			// changing to alphabet mode
-			if(*output_shm == 'A'){
+			if(output_shm[1] == 'A'){
 				write(fpga_dot, fpga_number[10], str_size);
-				*output_shm = '*';
 			}
 
 			// changing to numeric mode
-			if(*output_shm == 'N'){
+			if(output_shm[1] == 'N'){
 				write(fpga_dot, fpga_number[1], str_size);
-				*output_shm = '*';
 			}
 
 			if(*output_shm != '*'){
@@ -502,8 +411,6 @@ int output_process(void){
 			//printf("Now is mode 3\n");
 			//sleep(3);
 		}
-
-		sleep(0.1);
 	}
 
 	return 0;
