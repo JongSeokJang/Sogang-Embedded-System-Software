@@ -4,7 +4,7 @@
 
 This embedded system software is made for embedded linux system on ARM architecture in Ubuntu 13.10 system on x64 architecture. ACHRO 4210 Exynos (Huins board) is used as target board.
 
-For more information, please contact to mail below
+For more information, please contact to mail below:
 <center>[dangercloz@gmail.com](mailto:dangercloz@gmail.com)</center>
 
 ## 1st Assignment
@@ -27,3 +27,12 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 
 **'14. 04. 12.**
 - divided input process in two (event key process, input process)
+- renewed code again for better modularity
+- stop-watch mode (mode 1) is working properly
+- still working on text editor mode (mode 2)
+	- typing count display is not working properly (default value is set to 150. why?)
+	- fpga_push_switch is working little awkwardly
+	- need to implement clear lcd function and typing functions (alphabet & numeric)
+
+**'14. 04. 13.**
+

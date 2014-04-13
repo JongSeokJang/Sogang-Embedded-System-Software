@@ -453,7 +453,9 @@ int print_stopwatch(void){
 int print_texteditor(void){
 	int fpga_dot, str_size;
 	int fnd_dev, digit_size, i;
+	int text_dev, text_size, chk_size;
 	unsigned char data[4];
+	unsigned char string[32];
 
 	printf("DEBUG: print text editor entered\n");
 
@@ -467,6 +469,11 @@ int print_texteditor(void){
 		die("/dev/fpga_fnd open error");
 	memset(data, 0, sizeof(data));
 
+	// open and initialize fpga text driver
+	if((text_dev = open("/dev/fpga_text_lcd", O_WRONLY)) < 0)
+		die("/dev/fpga_text_lcd open error");
+	memset(string, 0, sizeof(string));
+
 	// update values for mode 2
 	while(*mode_shm == '2'){
 		// typing mode (alphabet / numeric)
@@ -476,7 +483,8 @@ int print_texteditor(void){
 			write(fpga_dot, fpga_number[10], str_size);
 
 		// TODO need to modify. prints 150 initially ...
-		sprintf(data, "%d", output_shm[0]);
+		i = output_shm[0];
+		sprintf(data, "%d", i);
 		write(fnd_dev, &data, 4);
 	}
 
