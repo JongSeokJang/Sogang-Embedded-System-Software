@@ -35,4 +35,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 	- need to implement clear lcd function and typing functions (alphabet & numeric)
 
 **'14. 04. 13.**
-
+- typing count works properly
+- text editor mode (mode 2) works properly now
+	- found issue : initial count is set to 3000. if button pressed, count works properly
+- thinking about what to make for mode 3

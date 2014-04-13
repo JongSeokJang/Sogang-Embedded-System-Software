@@ -29,8 +29,9 @@
 #define CON_OFFSET 0x40
 #define DAT_OFFSET 0x44
 
-#define BUFF_SIZE 64
+#define BUFF_SIZE 32
 #define MAX_BUTTON 9
+#define LINE_BUFF 16
 
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
@@ -56,13 +57,21 @@ static void die(char *str){
 
 // initialize sharedmemory to default value
 static void init_shared(void){
+	int i;
+
 	*input_shm = '*';
 	*output_shm = '*';
 	
-	if(*mode_shm == '2'){
-		output_shm[0] = 0;
-		output_shm[1] = 'A';
-	}
+	if(*mode_shm == '2')
+		output_shm[0] = 'A';
+
+	output_shm[1] = '0';
+	output_shm[2] = '0';
+	output_shm[3] = '0';
+	output_shm[4] = '0';
+
+	for(i=5;i<42;i++)
+		output_shm[i] = '\0';
 }
 
 // create and initialize shared memory to use
@@ -108,6 +117,7 @@ static int main_process(void){
 		}
 
 		if(*mode_shm == '3'){
+			cal_custom();
 		}
 	}
 
@@ -198,15 +208,14 @@ int cal_texteditor(void){
 
 			// clear lcd screen, if btn4 & btn5 are pressed
 			else if(input_shm[3] == 1 && input_shm[4] == 1){
-				// TODO clear lcd sreen
-				printf("clearing lcd screen\n");
-				typing_count(output_shm[0] + 2);
+				typing_clear();
+				typing_count(2);
 			}
 
 			// change typing mode, if btn5 & btn6 are pressed
 			else if(input_shm[4] == 1 && input_shm[5] == 1){
 				typing_mode();
-				typing_count(output_shm[0] + 2);
+				typing_count(2);
 			}
 
 			// terminate program, if btn8 & btn9 are pressed
@@ -214,16 +223,16 @@ int cal_texteditor(void){
 				*mode_shm = '0';
 
 			else{
-				if(output_shm[1] == 'A'){
-					// TODO below
+				if(output_shm[0] == 'A'){
 					// calculation for alphabet mode
+					typing_alphabet();
 				}
 				else{
-					// TODO below
 					// calculation for numeric mode
+					typing_numeric();
 				}
 
-				typing_count(output_shm[0] + 1);
+				typing_count(1);
 			}
 
 			*input_shm = '*';
@@ -236,18 +245,170 @@ int cal_texteditor(void){
 
 // change typing mode (alphabet <-> numeric)
 int typing_mode(void){
-	if(output_shm[1] == 'N')
-		output_shm[1] = 'A';
+	if(output_shm[0] == 'A')
+		output_shm[0] = 'N';
 	else
-		output_shm[1] = 'N';
+		output_shm[0] = 'A';
+
+	output_shm[39] = '\0';
+	output_shm[40] = '\0';
 
 	return 0;
 }
 
 // count number of typing
 int typing_count(int count){
-	output_shm[0] = count;
-	printf("Count is %d\n", output_shm[0]);
+	int i, num;
+	char temp[4];
+
+	for(i=0;i<4;i++)
+		temp[i] = output_shm[i+1];
+	//temp[4] = '\0';
+
+	num = atoi(temp) + count;
+	if(num > 9999)
+		num = 0;
+
+	sprintf(temp, "%04d", num);
+
+	for(i=0;i<4;i++)
+		output_shm[i+1] = temp[i];
+
+	return 0;
+}
+
+// clear lcd display
+int typing_clear(void){
+	int i;
+
+	for(i=5;i<41;i++){
+		output_shm[i] = '\0';
+	}
+
+	return 0;
+}
+
+// alphabet mode typing
+int typing_alphabet(void){
+	int i=0, j=0, flag=0, k=0;
+	char *s;
+	char char_set[MAX_BUTTON][3] = {{'.', 'Q', 'Z'}, {'A', 'B', 'C'}, {'D', 'E', 'F'}, {'G', 'H', 'I'}, {'J', 'K', 'L'}, {'M', 'N', 'O'}, {'P', 'R', 'S'}, {'T', 'U', 'V'}, {'W', 'X', 'Y'}};
+
+	s = output_shm;
+	while(*s != '\0'){
+		if(*s == '*')
+			break;
+		s++;
+		i++;
+	}
+
+	for(j=0;j<MAX_BUTTON;j++){
+		if(input_shm[j] == 1)
+			break;
+	}
+
+	if(i == 37){
+		k = j;
+		if(output_shm[39] != ('1'+j)){
+			for(j=5;j<37;j++)
+				output_shm[j] = output_shm[j+1];
+			output_shm[36] = char_set[k][0];
+			output_shm[39] = '1'+k;
+			output_shm[40] = 0;
+		}
+		else{
+			if(output_shm[40] == 0){
+				output_shm[36] = char_set[k][1];
+				output_shm[40] = 1;
+			}
+			else if(output_shm[40] == 1){
+				output_shm[36] = char_set[k][2];
+				output_shm[40] = 2;
+			}
+			else{
+				output_shm[36] = char_set[k][0];
+				output_shm[40] = 0;
+			}
+		}
+	}
+	else{
+		if(output_shm[39] != ('1'+j)){
+			output_shm[i] = char_set[j][0];
+			output_shm[39] = '1'+j;
+			output_shm[40] = 0;
+		}
+		else{
+			if(output_shm[40] == 0){
+				output_shm[i-1] = char_set[j][1];
+				output_shm[40] = 1;
+			}
+			else if(output_shm[40] == 1){
+				output_shm[i-1] = char_set[j][2];
+				output_shm[40] = 2;
+			}
+			else{
+				output_shm[i-1] = char_set[j][0];
+				output_shm[40] = 0;
+			}
+		}
+	}
+
+	return 0;
+}
+
+// numeric mode typing
+int typing_numeric(void){
+	int i = 0, j;
+	char *s;
+
+	s = output_shm;
+	while(*s != '\0'){
+		if(*s == '*')
+			break;
+		s++;
+		i++;
+	}
+	if(i == 37){
+		for(j=5;j<37;j++)
+			output_shm[j] = output_shm[j+1];
+		i = 36;
+	}
+
+	for(j=0;j<MAX_BUTTON;j++){
+		if(input_shm[j] == 1)
+			break;
+	}
+
+	switch(j+1){
+		case 1:
+			output_shm[i] = '1';
+			break;
+		case 2:
+			output_shm[i] = '2';
+			break;
+		case 3:
+			output_shm[i] = '3';
+			break;
+		case 4:
+			output_shm[i] = '4';
+			break;
+		case 5:
+			output_shm[i] = '5';
+			break;
+		case 6:
+			output_shm[i] = '6';
+			break;
+		case 7:
+			output_shm[i] = '7';
+			break;
+		case 8:
+			output_shm[i] = '8';
+			break;
+		case 9:
+			output_shm[i] = '9';
+			break;
+	}
+
 	return 0;
 }
 
@@ -316,6 +477,8 @@ static int eventkey_process(void){
 		}
 	}
 
+	close(fd);
+
 	printf("DEBUG: event key process ended\n");
 	return 0;
 }
@@ -335,6 +498,9 @@ static int input_process(void){
 		if(*mode_shm == '2'){
 			usleep(400000);
 			flag = 0;
+
+			if(*output_shm != 'A' && *output_shm != 'N')
+				*output_shm = 'A';
 
 			if(*input_shm == '*'){
 				char *s;
@@ -376,7 +542,7 @@ static int output_process(void){
 		}
 
 		if(*mode_shm == '3'){
-			//print_custom();
+			print_custom();
 		}
 	}
 
@@ -454,7 +620,7 @@ int print_texteditor(void){
 	int fpga_dot, str_size;
 	int fnd_dev, digit_size, i;
 	int text_dev, text_size, chk_size;
-	unsigned char data[4];
+	unsigned char data[8];
 	unsigned char string[32];
 
 	printf("DEBUG: print text editor entered\n");
@@ -476,17 +642,33 @@ int print_texteditor(void){
 
 	// update values for mode 2
 	while(*mode_shm == '2'){
+		usleep(400000);
+
 		// typing mode (alphabet / numeric)
-		if(output_shm[1] == 'N')
+		if(output_shm[0] == 'N')
 			write(fpga_dot, fpga_number[1], str_size);
 		else
 			write(fpga_dot, fpga_number[10], str_size);
 
-		// TODO need to modify. prints 150 initially ...
-		i = output_shm[0];
-		sprintf(data, "%d", i);
-		write(fnd_dev, &data, 4);
+		// print number of count
+		for(i=0;i<4;i++)
+			data[i] = output_shm[i+1];
+		write(fnd_dev, &data, 8);
+
+		// print text on lcd
+		if(output_shm[5] != '*'){
+			for(i=0;i<32;i++){
+				//if(output_shm[i+5] == '\0')
+				//	break;
+				string[i] = output_shm[i+5];
+			}
+			write(text_dev, string, BUFF_SIZE);
+		}
 	}
+
+	close(fpga_dot);
+	close(fnd_dev);
+	close(text_dev);
 
 	printf("DEBUG: print text editor ended\n");
 	return 0;
