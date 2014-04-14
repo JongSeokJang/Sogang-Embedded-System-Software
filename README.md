@@ -23,7 +23,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 
 **'14. 04. 11.**
 - when changed to mode2, input process self is held by mode 2
-- found out /dev/input/event1 is blocking input device
+	- found out /dev/input/event1 is blocking input device
 
 **'14. 04. 12.**
 - divided input process in two (event key process, input process)
