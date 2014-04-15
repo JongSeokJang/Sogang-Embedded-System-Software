@@ -42,3 +42,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 
 **'14. 04. 15.**
 - replace original main file to re-factorized file
+- better response of text typing (improvement of algoritm)
+- free all shared memory after program terminates
+- better performance overall with better refresh
+- trying basic stuff on mode 3

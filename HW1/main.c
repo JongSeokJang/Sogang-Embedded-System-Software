@@ -32,6 +32,8 @@
 #define BUFF_SIZE 32
 #define MAX_BUTTON 9
 #define LINE_BUFF 16
+#define FPGA_NUMBER 18
+#define RUN 8
 
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
@@ -65,13 +67,29 @@ static void init_shared(void){
 	if(*mode_shm == '2')
 		output_shm[0] = 'A';
 
-	output_shm[1] = '0';
-	output_shm[2] = '0';
-	output_shm[3] = '0';
-	output_shm[4] = '0';
+	if(*mode_shm != '1'){
+		output_shm[1] = '0';
+		output_shm[2] = '0';
+		output_shm[3] = '0';
+		output_shm[4] = '0';
+		input_shm[9] = '0';
+		input_shm[10] = '*';
+	}
 
 	for(i=5;i<42;i++)
-		output_shm[i] = '\0';
+		output_shm[i] = ' ';
+}
+
+static void free_shared(void){
+	// dettach the segments from memory space
+	shmdt((char *)mode_shm);
+	shmdt((char *)input_shm);
+	shmdt((char *)output_shm);
+
+	// deallocate segments
+	shmctl(mode_shmid, IPC_RMID, (struct shmid_ds *)NULL);
+	shmctl(input_shmid, IPC_RMID, (struct shmid_ds *)NULL);
+	shmctl(output_shmid, IPC_RMID, (struct shmid_ds *)NULL);
 }
 
 // create and initialize shared memory to use
@@ -84,9 +102,9 @@ static int shared_memory(void){
 	// create the segments
 	if((mode_shmid = shmget(mode_key, 1, IPC_CREAT|0600)) < 0)
 		die("mode shmget");
-	if((input_shmid = shmget(input_key, 4, IPC_CREAT|0660)) < 0)
+	if((input_shmid = shmget(input_key, 8, IPC_CREAT|0660)) < 0)
 		die("input shmget");
-	if((output_shmid = shmget(output_key, 4, IPC_CREAT|0666)) < 0)
+	if((output_shmid = shmget(output_key, 8, IPC_CREAT|0666)) < 0)
 		die("output shmget");
 
 	// attach the segments to memory space
@@ -145,26 +163,27 @@ int cal_stopwatch(void){
 
 				// run statement approximately one second
 				while(difftime(end_time, start_time) <= 0.999){
-					for(i=0;i<100;i++){
+					for(i=0;i<400;i++){
 						output_shm[0] = 0x02;
 						output_shm[1] = fnd_num[ttime/60/10];
 					}
 
-					for(i=0;i<100;i++){
+					for(i=0;i<400;i++){
 						output_shm[0] = 0x04;
 						output_shm[1] = fnd_num[ttime/60%10] - 0x01;
 					}
 
-					for(i=0;i<100;i++){
+					for(i=0;i<400;i++){
 						output_shm[0] = 0x10;
 						output_shm[1] = fnd_num[ttime%60/10];
 					}
 
-					for(i=0;i<100;i++){
+					for(i=0;i<400;i++){
 						output_shm[0] = 0x80;
 						output_shm[1] = fnd_num[ttime%60%10];
 					}
 
+					// get time for calculating one second
 					time(&end_time);
 				}
 
@@ -198,8 +217,11 @@ int cal_stopwatch(void){
 // function for text editor (mode 2) calculation
 int cal_texteditor(void){
 	printf("DEBUG: text editor function entered\n");
+
+	typing_count(0); // initialize counter on FND
+
 	while(*mode_shm == '2'){
-		if(*input_shm != '*'){
+		if(input_shm[10] != '*'){
 			// change mode to 3, if btn2 & btn3 are pressed
 			if(input_shm[1] == 1 && input_shm[2] == 1){
 				*mode_shm = '3';
@@ -208,8 +230,7 @@ int cal_texteditor(void){
 
 			// clear lcd screen, if btn4 & btn5 are pressed
 			else if(input_shm[3] == 1 && input_shm[4] == 1){
-				typing_clear();
-				typing_count(2);
+				init_shared();
 			}
 
 			// change typing mode, if btn5 & btn6 are pressed
@@ -222,6 +243,7 @@ int cal_texteditor(void){
 			else if(input_shm[7] == 1 && input_shm[8] == 1)
 				*mode_shm = '0';
 
+			// calculate input to print on lcd
 			else{
 				if(output_shm[0] == 'A'){
 					// calculation for alphabet mode
@@ -235,7 +257,8 @@ int cal_texteditor(void){
 				typing_count(1);
 			}
 
-			*input_shm = '*';
+			// flag down to wait new input
+			input_shm[10] = '*';
 		}
 	}
 
@@ -261,16 +284,18 @@ int typing_count(int count){
 	int i, num;
 	char temp[4];
 
+	// get count data from shared memory
 	for(i=0;i<4;i++)
 		temp[i] = output_shm[i+1];
-	//temp[4] = '\0';
 
 	num = atoi(temp) + count;
 	if(num > 9999)
 		num = 0;
 
+	// copy and transform integer to string
 	sprintf(temp, "%04d", num);
 
+	// copy data to shared memory
 	for(i=0;i<4;i++)
 		output_shm[i+1] = temp[i];
 
@@ -281,9 +306,8 @@ int typing_count(int count){
 int typing_clear(void){
 	int i;
 
-	for(i=5;i<41;i++){
-		output_shm[i] = '\0';
-	}
+	for(i=5;i<41;i++)
+		output_shm[i] = ' ';
 
 	return 0;
 }
@@ -292,52 +316,70 @@ int typing_clear(void){
 int typing_alphabet(void){
 	int i=0, j=0, flag=0, k=0;
 	char *s;
-	char char_set[MAX_BUTTON][3] = {{'.', 'Q', 'Z'}, {'A', 'B', 'C'}, {'D', 'E', 'F'}, {'G', 'H', 'I'}, {'J', 'K', 'L'}, {'M', 'N', 'O'}, {'P', 'R', 'S'}, {'T', 'U', 'V'}, {'W', 'X', 'Y'}};
+	char char_set[MAX_BUTTON][3] = {{'.', 'Q', 'Z'}, {'A', 'B', 'C'},
+					{'D', 'E', 'F'}, {'G', 'H', 'I'},
+					{'J', 'K', 'L'}, {'M', 'N', 'O'},
+					{'P', 'R', 'S'}, {'T', 'U', 'V'},
+					{'W', 'X', 'Y'}};
 
+	// find empty space for string buffer
 	s = output_shm;
-	while(*s != '\0'){
+	while(*s != ' '){
 		if(*s == '*')
 			break;
 		s++;
 		i++;
 	}
 
+	// check which button is pressed
 	for(j=0;j<MAX_BUTTON;j++){
 		if(input_shm[j] == 1)
 			break;
 	}
 
+	// output_shm[39] == character pressed just before
+	// output_shm[40] == character for multiple press (change alphabet)
+	// if string buffer is full, push to left
 	if(i == 37){
-		k = j;
+		// button pressed is different from previous one
 		if(output_shm[39] != ('1'+j)){
-			for(j=5;j<37;j++)
-				output_shm[j] = output_shm[j+1];
-			output_shm[36] = char_set[k][0];
-			output_shm[39] = '1'+k;
+			for(k=5;k<37;k++)
+				output_shm[k] = output_shm[k+1];
+			output_shm[36] = char_set[j][0];
+			output_shm[39] = '1'+j;
 			output_shm[40] = 0;
 		}
+
+		// button pressed is same with previous one
 		else{
+			// decide which character should be written on memory
 			if(output_shm[40] == 0){
-				output_shm[36] = char_set[k][1];
+				output_shm[36] = char_set[j][1];
 				output_shm[40] = 1;
 			}
 			else if(output_shm[40] == 1){
-				output_shm[36] = char_set[k][2];
+				output_shm[36] = char_set[j][2];
 				output_shm[40] = 2;
 			}
 			else{
-				output_shm[36] = char_set[k][0];
+				output_shm[36] = char_set[j][0];
 				output_shm[40] = 0;
 			}
 		}
 	}
+	// if string buffer is not full,
+	// write character on proper position
 	else{
+		// button pressed is different from previous one
 		if(output_shm[39] != ('1'+j)){
 			output_shm[i] = char_set[j][0];
 			output_shm[39] = '1'+j;
 			output_shm[40] = 0;
 		}
+
+		// button pressed is same with previous one
 		else{
+			// decide which character should be written on memory
 			if(output_shm[40] == 0){
 				output_shm[i-1] = char_set[j][1];
 				output_shm[40] = 1;
@@ -361,24 +403,29 @@ int typing_numeric(void){
 	int i = 0, j;
 	char *s;
 
+	// check for empty space for input
 	s = output_shm;
-	while(*s != '\0'){
+	while(*s != ' '){
 		if(*s == '*')
 			break;
 		s++;
 		i++;
 	}
+
+	// if buffer is reached to max, shift it left
 	if(i == 37){
 		for(j=5;j<37;j++)
 			output_shm[j] = output_shm[j+1];
 		i = 36;
 	}
 
+	// check which button is pressed
 	for(j=0;j<MAX_BUTTON;j++){
 		if(input_shm[j] == 1)
 			break;
 	}
 
+	// copy number to shared memory to print
 	switch(j+1){
 		case 1:
 			output_shm[i] = '1';
@@ -414,8 +461,25 @@ int typing_numeric(void){
 
 // function for custom mode (mode 3) calculation
 int cal_custom(void){
+	int i;
+	char *s;
+	char temp[32] = "_Sogang University Embedded HW1_";
+
 	printf("DEBUG: custom mode function entered\n");
+
+	// copy temp string to shared memory
+	for(i=0, s=output_shm;i<32;i++, s++)
+		*s = temp[i];
+
 	while(*mode_shm == '3'){
+		char ttemp = output_shm[0];
+
+		// shift characters left
+		for(i=0;i<31;i++)
+			output_shm[i] = output_shm[i+1];
+		output_shm[31] = ttemp;
+
+		sleep(1);
 	}
 
 	printf("DEBUG: custom mode function ended\n");
@@ -427,6 +491,7 @@ static int eventkey_process(void){
 	struct input_event ev[BUFF_SIZE];
 	int fd, rd, value, size = sizeof(struct input_event);
 
+	// open device driver
 	if((fd = open("/dev/input/event1", O_RDONLY)) < 0)
 		die("/dev/input/event1 open error");
 
@@ -477,6 +542,7 @@ static int eventkey_process(void){
 		}
 	}
 
+	// close device driver
 	close(fd);
 
 	printf("DEBUG: event key process ended\n");
@@ -488,41 +554,71 @@ static int input_process(void){
 	int i, dev, buff_size, flag;
 	unsigned char push_sw_buff[MAX_BUTTON];
 
+	// open device driver
 	if((dev = open("/dev/fpga_push_switch", O_RDWR)) < 0)
 		die("/dev/fpga_push_switch open error");
-
 	buff_size = sizeof(push_sw_buff);
 
 	printf("DEBUG: input process entered\n");
 	while(*mode_shm != '0'){
-		if(*mode_shm == '2'){
-			usleep(400000);
-			flag = 0;
+		// if mode is 1,
+		// sleep the process for better look (stop-watch blinking)
+		if(*mode_shm == '1')
+			sleep(1);
 
+		if(*mode_shm == '2'){
+			char *s;
+
+			flag = 0;
+			usleep(50000);
+
+			// check for alphabet/numeric mode
 			if(*output_shm != 'A' && *output_shm != 'N')
 				*output_shm = 'A';
 
-			if(*input_shm == '*'){
-				char *s;
-				read(dev, &push_sw_buff, buff_size);
+			// read switch input
+			read(dev, &push_sw_buff, buff_size);
 
-				// check input is enable
-				for(i=0;i<MAX_BUTTON;i++){
-					if(push_sw_buff[i] == 1)
-						flag = 1;
-				}
+			// check for input existence
+			for(i=0;i<MAX_BUTTON;i++){
+				if(push_sw_buff[i] == 1)
+					flag = 1;
+			}
 
-				// copy if there are any input
-				if(flag == 1){
-					for(i=0, s=input_shm;i<MAX_BUTTON;i++, s++)
+			// check if button released with changed
+			if(flag == 0 && input_shm[9] == '1' && input_shm[10] == '*'){
+				input_shm[9] = '0';
+				input_shm[10] = '0';	// notify main to calculate
+			}
+
+			// check if button is still pressed
+			else if(flag == 1 && input_shm[9] == '1' && input_shm[10] == '*'){
+				// change for any additional input (keep previous input)
+				for(i=0, s=input_shm;i<MAX_BUTTON;i++, s++){
+					if(*s == 1)
+						continue;
+					else
 						*s = push_sw_buff[i];
 				}
-				else
-					*input_shm = '*';
+			}
+
+			// copy first input of a button to shared memory
+			else if(flag == 1 && input_shm[9] == '0' && input_shm[10] == '*'){
+				for(i=0, s=input_shm;i<MAX_BUTTON;i++, s++){
+					*s = push_sw_buff[i];
+					input_shm[9] = '1';
+				}
+			}
+
+			// initialize input buffer
+			else{
+				for(i=0, s=input_shm;i<MAX_BUTTON;i++, s++)
+					*s = push_sw_buff[i];
 			}
 		}
 	}
 
+	// close device driver
 	close(dev);
 
 	printf("DEBUG: input process ended\n");
@@ -552,7 +648,7 @@ static int output_process(void){
 
 // print stop watch using FND driver
 int print_stopwatch(void){
-	int fd;
+	int fd, i;
 	void *gpl_addr, *gpe_addr, *baseaddr;
 	unsigned long *gpe_con = 0;
 	unsigned long *gpe_dat = 0;
@@ -598,6 +694,7 @@ int print_stopwatch(void){
 		*gpe_dat = output_shm[0];
 		*gpl_dat = output_shm[1];
 		*led_dat = output_shm[2];
+		*led_dat = output_shm[2];
 	}
 
 	// set to default value
@@ -608,6 +705,8 @@ int print_stopwatch(void){
 	// free device
 	munmap(gpe_addr, 4096);
 	munmap(gpl_addr, 4096);
+
+	// close device driver
 	close(fd);
 
 	printf("DEBUG: print stop watch ended\n");
@@ -620,7 +719,7 @@ int print_texteditor(void){
 	int fpga_dot, str_size;
 	int fnd_dev, digit_size, i;
 	int text_dev, text_size, chk_size;
-	unsigned char data[8];
+	unsigned char data[4];
 	unsigned char string[32];
 
 	printf("DEBUG: print text editor entered\n");
@@ -628,7 +727,7 @@ int print_texteditor(void){
 	// open and initialize fpga dot driver
 	if((fpga_dot = open("/dev/fpga_dot", O_WRONLY)) < 0)
 		die("/dev/fpga_dot open error");
-	str_size = sizeof(fpga_number[10]);
+	str_size = sizeof(fpga_number[FPGA_NUMBER]);
 
 	// open and initialize fpga fnd driver
 	if((fnd_dev = open("/dev/fpga_fnd", O_RDWR)) < 0)
@@ -642,7 +741,7 @@ int print_texteditor(void){
 
 	// update values for mode 2
 	while(*mode_shm == '2'){
-		usleep(400000);
+		usleep(50000);
 
 		// typing mode (alphabet / numeric)
 		if(output_shm[0] == 'N')
@@ -653,19 +752,27 @@ int print_texteditor(void){
 		// print number of count
 		for(i=0;i<4;i++)
 			data[i] = output_shm[i+1];
-		write(fnd_dev, &data, 8);
+		write(fnd_dev, &data, 4);
 
 		// print text on lcd
 		if(output_shm[5] != '*'){
-			for(i=0;i<32;i++){
-				//if(output_shm[i+5] == '\0')
-				//	break;
+			for(i=0;i<32;i++)
 				string[i] = output_shm[i+5];
-			}
+
 			write(text_dev, string, BUFF_SIZE);
 		}
 	}
 
+	// set to default value for each device (just for clean look)
+	write(fpga_dot, fpga_number[10], str_size);
+	for(i=0;i<4;i++)
+		data[i] = '0';
+	write(fnd_dev, &data, 4);
+	for(i=0;i<32;i++)
+		string[i] = ' ';
+	write(text_dev, string, BUFF_SIZE);
+
+	// close all device driver
 	close(fpga_dot);
 	close(fnd_dev);
 	close(text_dev);
@@ -676,8 +783,82 @@ int print_texteditor(void){
 
 // print custom mode
 int print_custom(void){
+	int text_dev, i;
+	unsigned char string[32];
+
 	printf("DEBUG: print custom mode entered\n");
+
+	// open and initialize fpga text driver
+	if((text_dev = open("/dev/fpga_text_lcd", O_WRONLY)) < 0)
+		die("/dev/fpga_text_lcd open error");
+	memset(string, 0, sizeof(string));
+
+	while(*mode_shm == '3'){
+		// print text on lcd display
+		for(i=0;i<32;i++)
+			string[i] = output_shm[i];
+		write(text_dev, string, BUFF_SIZE);
+	}
+
+	/*int fpga_dot, str_size, i = 0;
+	int motor_dev, motor_size;
+	int buzzer_dev;
+	unsigned char motor_state[3] = {1, 1, 10};
+	unsigned char data;
+
+	printf("DEBUG: print custom mode entered\n");
+
+	// open and initialize fpga dot driver
+	if((fpga_dot = open("/dev/fpga_dot", O_WRONLY)) < 0)
+		die("/dev/fpga_dot open error");
+	str_size = sizeof(fpga_number[FPGA_NUMBER]);
+
+	motor_dev = open("/dev/fpga_step_motor", O_WRONLY);
+	write(motor_dev, motor_state, 3);
+
+	buzzer_dev = open("dev/fpga_buzzer", O_RDWR);
+	data=1;
+
+	// update values for mode 3
+	while(*mode_shm == '3'){
+		write(fpga_dot, fpga_number[11+i], str_size);
+
+		if(data == 1)
+			data = 0;
+		else
+			data = 1;
+
+		write(buzzer_dev, &data, 1);
+		sleep(1);
+		i++;
+		if(i == RUN)
+			i = 0;
+	}
+
+	motor_state[0] = 0;
+	motor_state[1] = 0;
+	motor_state[2] = 250;
+	write(motor_dev, motor_state, 3);
+
+	data = 0;
+	write(buzzer_dev, &data, 1);
+
 	printf("DEBUG: print custom mode ended\n");
+
+	close(fpga_dot);
+	close(motor_dev);
+	close(buzzer_dev);*/
+
+	// set display for default value (just for better look)
+	for(i=0;i<32;i++)
+		string[i] = ' ';
+	write(text_dev, string, BUFF_SIZE);
+
+	printf("DEBUG: print custom mode ended\n");
+
+	// close device
+	close(text_dev);
+
 	return 0;
 }
 
@@ -717,8 +898,11 @@ int main(int argc, char *argv[]){
 					return output_process();
 				default:
 					// main process
-					return main_process();
+					main_process();
 			}
 	}
+
+	free_shared();
+
 	return 0;
 }
