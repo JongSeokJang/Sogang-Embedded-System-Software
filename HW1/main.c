@@ -102,9 +102,9 @@ static int shared_memory(void){
 	// create the segments
 	if((mode_shmid = shmget(mode_key, 1, IPC_CREAT|0600)) < 0)
 		die("mode shmget");
-	if((input_shmid = shmget(input_key, 8, IPC_CREAT|0660)) < 0)
+	if((input_shmid = shmget(input_key, 32, IPC_CREAT|0660)) < 0)
 		die("input shmget");
-	if((output_shmid = shmget(output_key, 8, IPC_CREAT|0666)) < 0)
+	if((output_shmid = shmget(output_key, 64, IPC_CREAT|0666)) < 0)
 		die("output shmget");
 
 	// attach the segments to memory space
@@ -463,7 +463,7 @@ int typing_numeric(void){
 int cal_custom(void){
 	int i;
 	char *s;
-	char temp[32] = "_Sogang University Embedded HW1_";
+	char temp[32] = "Sogang Univ Embedded System HW1 ";
 
 	printf("DEBUG: custom mode function entered\n");
 
@@ -478,6 +478,24 @@ int cal_custom(void){
 		for(i=0;i<31;i++)
 			output_shm[i] = output_shm[i+1];
 		output_shm[31] = ttemp;
+
+		// pass command to output shared memory
+		if(*input_shm == '1'){
+			output_shm[32] = '1';
+			*input_shm = '*';
+		}
+		else if(*input_shm == '2'){
+			output_shm[32] = '2';
+			*input_shm = '*';
+		}
+		else if(*input_shm == '3'){
+			output_shm[32] = '3';
+			*input_shm = '*';
+		}
+		else if(*input_shm == '4'){
+			output_shm[32] = '4';
+			*input_shm = '*';
+		}
 
 		sleep(1);
 	}
@@ -504,6 +522,18 @@ static int eventkey_process(void){
 		if(ev[0].value == KEY_PRESS){
 			// stop watch button input
 			if(*mode_shm == '1'){
+				if(ev[0].code == SW2)
+					*input_shm = '2';
+				if(ev[0].code == SW3)
+					*input_shm = '3';
+				if(ev[0].code == SW4)
+					*input_shm = '4';
+			}
+
+			// custom mode button input
+			if(*mode_shm == '3'){
+				if(ev[0].code == SW1)
+					*input_shm = '1';
 				if(ev[0].code == SW2)
 					*input_shm = '2';
 				if(ev[0].code == SW3)
@@ -784,7 +814,13 @@ int print_texteditor(void){
 // print custom mode
 int print_custom(void){
 	int text_dev, i;
-	unsigned char string[32];
+	unsigned char string[32], j = 0;
+
+	int dot_dev, dot_size;
+	int buzzer_dev;
+	int motor_dev, motor_size;
+	unsigned char motor_state[3] = {0, 0, 10};
+	unsigned char data;
 
 	printf("DEBUG: print custom mode entered\n");
 
@@ -793,71 +829,82 @@ int print_custom(void){
 		die("/dev/fpga_text_lcd open error");
 	memset(string, 0, sizeof(string));
 
+	// open and initialize fpga dot driver
+	if((dot_dev = open("/dev/fpga_dot", O_WRONLY)) < 0)
+		die("/dev/fpga_dot open error");
+	dot_size = sizeof(fpga_number[FPGA_NUMBER]);
+
+	// open and initialize fpga motor
+	motor_dev = open("/dev/fpga_step_motor", O_WRONLY);
+
+	//open and initialize buzzer driver
+	buzzer_dev = open("/dev/fpga_buzzer", O_RDWR);
+	data = 0;
+
 	while(*mode_shm == '3'){
 		// print text on lcd display
 		for(i=0;i<32;i++)
 			string[i] = output_shm[i];
 		write(text_dev, string, BUFF_SIZE);
-	}
 
-	/*int fpga_dot, str_size, i = 0;
-	int motor_dev, motor_size;
-	int buzzer_dev;
-	unsigned char motor_state[3] = {1, 1, 10};
-	unsigned char data;
+		// print text on dot driver
+		write(dot_dev, fpga_number[11+j], dot_size);
+		if(++j == RUN)
+			j = 0;
 
-	printf("DEBUG: print custom mode entered\n");
+		// check for motor state
+		if(output_shm[32] == '1'){
+			if(motor_state[0] == '1')
+				motor_state[0] = '0';
+			else
+				motor_state[0] = '1';
 
-	// open and initialize fpga dot driver
-	if((fpga_dot = open("/dev/fpga_dot", O_WRONLY)) < 0)
-		die("/dev/fpga_dot open error");
-	str_size = sizeof(fpga_number[FPGA_NUMBER]);
+			output_shm[32] = '*';
+		}
+		else if(output_shm[32] == '2'){
+			if(motor_state[1] == '1')
+				motor_state[1] = '0';
+			else
+				motor_state[1] = '1';
 
-	motor_dev = open("/dev/fpga_step_motor", O_WRONLY);
-	write(motor_dev, motor_state, 3);
+			output_shm[32] = '*';
+		}
 
-	buzzer_dev = open("dev/fpga_buzzer", O_RDWR);
-	data=1;
-
-	// update values for mode 3
-	while(*mode_shm == '3'){
-		write(fpga_dot, fpga_number[11+i], str_size);
-
-		if(data == 1)
-			data = 0;
-		else
+		// check for buzzer state
+		if(output_shm[32] == '3'){
 			data = 1;
+			output_shm[32] = '*';
+		}
+		else if(output_shm[32] == '4'){
+			data = 0;
+			output_shm[32] = '*';
+		}
 
+		write(motor_dev, motor_state, 3);
 		write(buzzer_dev, &data, 1);
+
 		sleep(1);
-		i++;
-		if(i == RUN)
-			i = 0;
 	}
-
-	motor_state[0] = 0;
-	motor_state[1] = 0;
-	motor_state[2] = 250;
-	write(motor_dev, motor_state, 3);
-
-	data = 0;
-	write(buzzer_dev, &data, 1);
-
-	printf("DEBUG: print custom mode ended\n");
-
-	close(fpga_dot);
-	close(motor_dev);
-	close(buzzer_dev);*/
 
 	// set display for default value (just for better look)
 	for(i=0;i<32;i++)
 		string[i] = ' ';
 	write(text_dev, string, BUFF_SIZE);
+	write(dot_dev, fpga_number[10], dot_size);
+	motor_state[0] = '0';
+	motor_state[1] = '0';
+	write(motor_dev, motor_state, 3);
+	data = 0;
+	write(buzzer_dev, &data, 1);
+
 
 	printf("DEBUG: print custom mode ended\n");
 
-	// close device
+	// close devices
 	close(text_dev);
+	close(dot_dev);
+	close(motor_dev);
+	close(buzzer_dev);
 
 	return 0;
 }

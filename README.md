@@ -13,7 +13,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 
 ###Progress
 **'14. 04. 08.**
-- created basic structure of ICP between input-main-output processes using shared memory
+- created basic structure of IPC between input-main-output processes using shared memory
 - working on stop-watch using FND driver
 
 **'14. 04. 10.**
@@ -46,3 +46,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 - free all shared memory after program terminates
 - better performance overall with better refresh
 - trying basic stuff on mode 3
+
+**'14. 04. 16.**
+- made custom mode with basic stuff (tired)
+- some modification of memory allocations with devices closing
