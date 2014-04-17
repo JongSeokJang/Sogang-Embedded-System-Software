@@ -50,3 +50,6 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 **'14. 04. 16.**
 - made custom mode with basic stuff (tired)
 - some modification of memory allocations with devices closing
+
+###Result
+Completed all the requirements includeing custom mode with documentation
