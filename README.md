@@ -1,6 +1,6 @@
 # Embedded System Software
 
-**2014 Sogang University Embedded System Software**
+**Sogang University 2014 Embedded System Software**
 
 This embedded system software is made for embedded linux system on ARM architecture in Ubuntu 13.10 system on x64 architecture. ACHRO 4210 Exynos (Huins board) is used as target board.
 
@@ -53,3 +53,7 @@ By using device drivers and IPCs, implement stop-watch, text editor and custom m
 
 ###Result
 Completed all the requirements includeing custom mode with documentation
+
+
+## 2nd Assignment
+### Goal
