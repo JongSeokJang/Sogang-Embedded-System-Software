@@ -57,3 +57,13 @@ Completed all the requirements includeing custom mode with documentation
 
 ## 2nd Assignment
 ### Goal
+Implement system call, module and device driver and develop a program using those things
+
+### Progress
+**'14. 05. 07.**
+- analyze requirements and plan for project
+
+**'14. 05. 08.**
+- analyze given examples of device driver and it's application
+
+### Work in progress...
