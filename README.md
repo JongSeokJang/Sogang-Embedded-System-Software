@@ -57,7 +57,7 @@ Completed all the requirements includeing custom mode with documentation
 
 ## 2nd Assignment
 ### Goal
-Implement system call, module and device driver and develop a program using those things
+Implement program with system call programming, module programming and device driver implementation
 
 ### Progress
 **'14. 05. 07.**
