@@ -60,7 +60,7 @@ Completed all the requirements includeing custom mode with documentation
 Implement program with system call programming, module programming and device driver implementation
 
 ### Implementation
-1. Create a module including device drivers(**gpio_fnd, gpio_led, fpga_fnd, fpga_led, fpga_dot, pga_text_lcd) and timer module
+1. Create a module including device drivers(gpio_fnd, gpio_led, fpga_fnd, fpga_led, fpga_dot, pga_text_lcd) and timer module
 2. Create system call to return a variable with input of multiple parameters
 3. Create application to print by using created module and system call
 
@@ -73,5 +73,6 @@ Implement program with system call programming, module programming and device dr
 
 **'14. 05. 20.**
 - creating basic frame work of module
+- implemented system call (create a value from multiple parameters)
 
 ### Work in progress...
