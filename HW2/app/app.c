@@ -14,7 +14,7 @@ struct input_data{
 int main(int argc, char *argv[]){
 	struct input_data data;
 	char *tmp;
-	int i, dev;
+	int i, dev, retval;
 
 	// check correctness of parameter
 	if(argc != 4){
@@ -50,21 +50,21 @@ int main(int argc, char *argv[]){
 	data.option[i] = '\0';
 
 	// get return value of given parameter
-	long ret = syscall(366, &data);
+	long data_stream = syscall(366, &data);
 
 	//XXX: temporary checking code of shift in variable
-	long temp = ret>>24;
+	long temp = data_stream>>24;
 	printf("Position is %c\n", temp);
 
-	temp = ret<<8;
+	temp = data_stream<<8;
 	temp = temp>>24;
 	printf("Value is %c\n", temp);
 
-	temp = ret<<16;
+	temp = data_stream<<16;
 	temp = temp>>24;
 	printf("Time is %d\n", temp);
 
-	temp = ret<<24;
+	temp = data_stream<<24;
 	temp = temp>>24;
 	printf("Number is %d\n", temp);
 	//XXX
@@ -76,7 +76,16 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	//TODO: actual function implementation over here!!
+	// write input data to module
+	retval = write(dev, &data_stream, 4);
+	if(retval < 0){
+		printf("Write Error!\n");
+		return -1;
+	} else
+		printf("Succeed!\n");
+
+	// clear memory space to 0
+	memset(data_stream, 0, sizeof(long));
 
 	// close device driver
 	close(dev);

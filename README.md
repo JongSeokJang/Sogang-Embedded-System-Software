@@ -76,4 +76,10 @@ Implement program with system call programming, module programming and device dr
 - implemented system call (create a value from multiple parameters)
 	- basic framework of application done
 
+**'14. 05. 21.**
+- application completed (not yet tested)
+- system call for kernel completed
+- module is still work is progress
+	- finding hard to unite all device drivers
+
 ### Work in progress...
