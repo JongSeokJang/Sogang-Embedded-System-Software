@@ -7,6 +7,7 @@
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
@@ -29,6 +30,7 @@
 
 #define UON 0x00	// IOM
 #define UOFF 0x01	// IOM
+#define IOM_DEMO_ADDRESS 0x04000300
 
 // fnd driver device address
 #define FND_GPL2CON 0x11000100	// fnd pin configuration
@@ -42,19 +44,30 @@
 
 // fpga fnd driver device address
 #define IOM_FND_ADDRESS 0x04000004	// physical address
-#define IOM_DEMO_ADDRESS 0x04000300
 
 // fpga led driver device address
 #define IOM_LED_ADDRESS 0x04000016	// physical address
-#define IOM_DEMO_ADDRESS 0x04000300
+
+// fpga dot driver device address
+#define IOM_FPGA_DOT_ADDRESS 0x04000210	// physical address
+
+// fpga text lcd driver device address
+#define IOM_FPGA_TEXT_LCD_ADDRESS 0x04000100 // physical address
 
 int dev_open(struct inode *, struct file *);
 int dev_release(struct inode *, struct file *);
-ssize_t dev_write(struct file *, const short *, size_t, loff_t *);
+ssize_t dev_write(struct file *, const long *, size_t, loff_t *);
 ssize_t dev_read(struct file *, char *, size_t, loff_t *);
+
+int close_devices(void);
+unsigned short fnd_write(const unsigned short *);
+ssize_t led_write(const char *);
+ssize_t fpga_led_write(const char *);
+ssize_t fpga_fnd_write(const int *);
 
 // Global variable
 static int dev_usage = 0;
+static unsigned char *iom_demo_addr;
 
 // fnd global variable
 static unsigned char *fnd_data;
@@ -69,11 +82,15 @@ static unsigned int *led_ctrl;
 
 // fpga fnd global variable
 static unsigned char *iom_fpga_fnd_addr;
-static unsigned char *iom_demo_addr;
 
 // fpga led global variable
 static unsigned char *iom_fpga_led_addr;
-static unsigned char *iom_demo_addr;
+
+// fpga dot global vairable
+static unsigned char *iom_fpga_dot_addr;
+
+// fpga text lcd global variable
+static unsigned char *iom_fpga_text_lcd_addr;
 
 static struct file_operations dev_fops =
 {
@@ -82,6 +99,17 @@ static struct file_operations dev_fops =
 	.write = dev_write,
 	.read = dev_read,
 };
+
+static struct struct_timer{
+	struct timer_list timer;
+	int count;
+	int end_count;
+	int time;
+	unsigned short data;
+};
+
+// timer global variable
+struct struct_timer mytimer;
 
 int dev_open(struct inode *minode, struct file *mfile){
 	if(dev_usage != 0)
@@ -97,25 +125,261 @@ int dev_release(struct inode *minode, struct file *mfile){
 	return 0;
 }
 
-ssize_t dev_write(struct file *inode, const short *gdata, size_t length, loff_t *off_what){
-	/* FND driver write */
-/*	const short *tmp = gdata;
-	unsigned short fnd_buff = 0;
+// turn off devices after finished
+int close_devices(){
+	fnd_write(0);
+	led_write(0);
+	fpga_led_write(0);
+	fpga_fnd_write(0);
+	return 0;
+}
 
-	char fnd_sel;
-	char fnd_dat;
+static void kernel_timer_blink(unsigned long timeout){
+	struct struct_timer *p_data = (struct sturct_timer *)timeout;
+	char position, value;
+	unsigned short temp_value;
 
-	if(copy_from_user(&fnd_buff, tmp, length))
-		return -EFAULT;
+	p_data->count++;	// increase count
 
+	// pass data to led device
+	position = (char)(p_data->data>>8);
+	led_write(position);
+
+	// pass data to fpga led device
+	value = (char)(p_data->data&0x00FF);
+	fpga_led_write(value);
+
+	// pass data to fpga fnd device
+	fpga_fnd_write(p_data->end_count - p_data->count);
+
+	// pass data to fnd device
+	p_data->data = fnd_write(p_data->data);
+
+	// check if count has reached limit
+	//if(p_data->count >= p_data->end_count){
+	//	close_devices();
+	//	return;
+	//}
+
+	mytimer.timer.expires = get_jiffies_64() + (p_data->time * HZ)/10;
+	mytimer.timer.data = (unsigned long)&mytimer;
+	mytimer.timer.function = kernel_timer_blink;
+
+	if(p_data->count >= p_data->end_count){
+		close_devices();
+		return;
+	}
+
+	// decode given input
+	temp_value = p_data->data;
+	position = (char)(temp_value>>8);
+	value = (char)(temp_value&0x00FF);
+
+	// change value if maximum value is reached
+	if(value >56){
+		value = 49;
+		position += 1;
+		if(position > 52)	// change position
+			position = 49;
+	}
+
+	// set modified timer data
+	temp_value = position;	// new position
+	temp_value = (temp_value<<8)|value;	// new value
+	mytimer.data = temp_value;	// copy to timer data
+
+	add_timer(&mytimer.timer);
+}
+
+unsigned short fnd_write(const unsigned short *gdata){
+	const unsigned short *tmp = gdata;
+	unsigned short fnd_buff = tmp;
+	char fnd_sel, fnd_dat, dat_bak, sel_bak;
+
+	// decode data
 	fnd_sel = (char)(fnd_buff>>8);
 	fnd_dat = (char)(fnd_buff&0x00FF);
 
-	printk("FND Secect : %d\n", fnd_sel);
-	printk("FND data : %d\n", fnd_dat);
+	// copy value and position
+	dat_bak = fnd_dat;
+	sel_bak = fnd_sel;
 
-	outb(fnd_sel, (unsigned int)fnd_data2);
-	outb(fnd_dat, (unsigned int)fnd_data);*/
+	// position to print
+	switch(sel_bak){
+		case 49:
+			sel_bak = 0x02;
+			break;
+		case 50:
+			sel_bak = 0x04;
+			break;
+		case 51:
+			sel_bak = 0x10;
+			break;
+		case 52:
+			sel_bak = 0x80;
+			break;
+		default:
+			sel_bak = 0x00;
+			break;
+	}
+
+	// data value to write
+	switch(dat_bak){
+		case 49:
+			dat_bak = 0x9F;
+			break;
+		case 50:
+			dat_bak = 0x25;
+			break;
+		case 51:
+			dat_bak = 0x0D;
+			break;
+		case 52:
+			dat_bak = 0x99;
+			break;
+		case 53:
+			dat_bak = 0x49;
+			break;
+		case 54:
+			dat_bak = 0xC1;
+			break;
+		case 55:
+			dat_bak = 0x1F;
+			break;
+		case 56:
+			dat_bak = 0x01;
+			break;
+	}
+
+	// encode data
+	fnd_dat++;
+	fnd_buff = fnd_sel;
+	fnd_buff = (fnd_buff<<8)|fnd_dat;
+
+	// print data to device
+	outb(sel_bak, (unsigned int)fnd_data2);
+	outb(dat_bak, (unsigned int)fnd_data);
+
+	return fnd_buff;
+}
+
+ssize_t led_write(const char *gdata){
+	const char led_buff = gdata;
+	unsigned char tmp = 0;
+
+	// select position to print
+	switch(led_buff){
+		case 49:
+			tmp = 0xE0;
+			break;
+		case 50:
+			tmp = 0xD0;
+			break;
+		case 51:
+			tmp = 0xB0;
+			break;
+		case 52:
+			tmp = 0x70;
+			break;
+		default:
+			tmp = 0xFF;
+			break;
+	}
+
+	// print on led device
+	outb(tmp, (unsigned int)led_data);
+
+	return 0;
+}
+
+ssize_t fpga_led_write(const char *gdata){
+	const char led_buff = gdata;
+	unsigned char tmp = 0;
+
+	switch(led_buff){
+		case 49:
+			tmp = 128;
+			break;
+		case 50:
+			tmp = 64;
+			break;
+		case 51:
+			tmp = 32;
+			break;
+		case 52:
+			tmp = 16;
+			break;
+		case 53:
+			tmp = 8;
+			break;
+		case 54:
+			tmp = 4;
+			break;
+		case 55:
+			tmp = 2;
+			break;
+		case 56:
+			tmp = 1;
+			break;
+		default:
+			tmp = 0;
+			break;
+	}
+
+	// print on fpga led device
+	outb(tmp, (unsigned int)iom_fpga_led_addr);
+
+	return 0;
+}
+
+ssize_t fpga_fnd_write(const int *gdata){
+	int i;
+	const int fnd_buff = gdata;
+	unsigned char value[4] = {0,};
+
+	sprintf(value, "%4d", fnd_buff);
+
+	for(i=0;i<4;i++)
+		outb(value[i], (unsigned int)iom_fpga_fnd_addr+i);
+
+	return 0;
+}
+
+ssize_t dev_write(struct file *inode, const long *gdata, size_t length, loff_t *off_what){
+	const long *tmp = gdata;
+	long kernel_timer_buff = 0;
+	char position, value;
+	int time, number;
+	unsigned short temp_value;
+
+	if(copy_from_user(&kernel_timer_buff, tmp, 4))
+		return -EFAULT;
+
+	// decode given input
+	position = kernel_timer_buff>>24;
+	value = kernel_timer_buff>>16;
+
+	time = kernel_timer_buff<<16;
+	time = time>>24;
+
+	number = kernel_timer_buff<<24;
+	number = number>>24;
+
+	// set timer data
+	mytimer.count = 0;
+	mytimer.end_count = number;
+	mytimer.time = time;
+	mytimer.data = position;
+	mytimer.data = (mytimer.data<<8)|value;
+	//temp_value = position;
+	//temp_value = (temp_value<<8)|value;
+	//mytimer.data = temp_value;
+
+	// add timer
+	del_timer_sync(&mytimer.timer);
+	mytimer.timer.data = (unsigned long)&mytimer;
+	mytimer.timer.function = kernel_timer_blink;
+	add_timer(&mytimer.timer);
 
 	return length;
 }
@@ -197,17 +461,31 @@ int __init dev_init(void){
 	outb(0xF0, (unsigned int)led_data);
 	/* LED driver initialization ended */
 
-	/* FPGA FND driver initialization begin */
-	iom_fpga_fnd_addr = ioremap(IOM_FND_ADDRESS, 0x4);
+	// fpga common facotrs
 	iom_demo_addr = ioremap(IOM_DEMO_ADDRESS, 0x1);
-	outb(UON, (unsigned int)iom_demo_addr);
-	/* FPGA FND driver initialization ended */
 
-	/* FPGA LED driver initialization begin */
+	/* FPGA FND driver initialization */
+	iom_fpga_fnd_addr = ioremap(IOM_FND_ADDRESS, 0x4);
+
+	/* FPGA LED driver initialization */
 	iom_fpga_led_addr = ioremap(IOM_LED_ADDRESS, 0x1);
-	iom_demo_addr = ioremap(IOM_DEMO_ADDRESS, 0x1);
+
+	/* FPGA DOT driver initialization */
+	iom_fpga_dot_addr = ioremap(IOM_FPGA_DOT_ADDRESS, 0x10);
+
+	/* FPGA TEXT LCD driver initialization */
+	iom_fpga_text_lcd_addr = ioremap(IOM_FPGA_TEXT_LCD_ADDRESS, 0x20);
+
+	// fpga common factors
 	outb(UON, (unsigned int)iom_demo_addr);
-	/* FPGA LED driver initialization ended */
+
+	/* TIMER driver initialization begin */
+	struct class *kernel_timer_dev_class = NULL;
+	struct device *kernel_timer_dev = NULL;
+
+	kernel_timer_dev = device_create(kernel_timer_dev_class, NULL, MKDEV(DEV_MAJOR, TIMER_MINOR), NULL, DEV_NAME);
+	init_timer(&(mytimer.timer));
+	/* TIMER driver initialization ended */
 
 	printk("init module, /dev/%s major : %d\n", DEV_NAME, DEV_MAJOR);
 	return 0;
@@ -225,11 +503,21 @@ void __exit dev_exit(void){
 
 	/* FPGA FND driver free */
 	iounmap(iom_fpga_fnd_addr);
-	iounmap(iom_demo_addr);
 
 	/* FPGA LED driver free */
 	iounmap(iom_fpga_led_addr);
+
+	/* FPGA DOT driver free */
+	iounmap(iom_fpga_dot_addr);
+
+	/* FPGA TEXT LCD driver free */
+	iounmap(iom_fpga_text_lcd_addr);
+
+	// fpga common factor free
 	iounmap(iom_demo_addr);
+
+	/* TIMER driver free */
+	del_timer_sync(&mytimer.timer);
 
 	unregister_chrdev(DEV_MAJOR, DEV_NAME);
 	printk("dev driver module removed.\n");
