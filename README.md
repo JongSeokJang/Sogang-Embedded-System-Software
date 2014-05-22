@@ -89,5 +89,8 @@ Implement program with system call programming, module programming and device dr
 - system call test complete
 - all module device integration complete and works properly
 	- need to modify characters printed on the device
+	- modified characters printed on the device
+- all requirements are finished
+	- plan to modify code to ioctl style
 
 ### Work in progress...

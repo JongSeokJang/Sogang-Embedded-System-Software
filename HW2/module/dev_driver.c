@@ -229,28 +229,28 @@ unsigned short fnd_write(const unsigned short *gdata){
 	// data value to write
 	switch(fnd_dat){
 		case '1':
-			dat_bak = 0x8C;
+			dat_bak = 0x73;
 			break;
 		case '2':
-			dat_bak = 0x70;
+			dat_bak = 0x8F;
 			break;
 		case '3':
-			dat_bak = 0x8E;
+			dat_bak = 0x71;
 			break;
 		case '4':
-			dat_bak = 0x72;
+			dat_bak = 0x8D;
 			break;
 		case '5':
-			dat_bak = 0x8E;
+			dat_bak = 0x61;
 			break;
 		case '6':
-			dat_bak = 0xF2;
+			dat_bak = 0x0D;
 			break;
 		case '7':
-			dat_bak = 0xDE;
+			dat_bak = 0x21;
 			break;
 		case '8':
-			dat_bak = 0xFA;
+			dat_bak = 0x05;
 			break;
 	}
 
