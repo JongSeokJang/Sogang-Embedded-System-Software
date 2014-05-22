@@ -64,6 +64,7 @@ unsigned short fnd_write(const unsigned short *);
 ssize_t led_write(const char *);
 ssize_t fpga_led_write(const char *);
 ssize_t fpga_fnd_write(const int *);
+ssize_t fpga_dot_write(const char *);
 
 // Global variable
 static int dev_usage = 0;
@@ -80,17 +81,11 @@ static char *led_buffer = NULL;
 static unsigned char *led_data;
 static unsigned int *led_ctrl;
 
-// fpga fnd global variable
-static unsigned char *iom_fpga_fnd_addr;
-
-// fpga led global variable
-static unsigned char *iom_fpga_led_addr;
-
-// fpga dot global vairable
-static unsigned char *iom_fpga_dot_addr;
-
-// fpga text lcd global variable
-static unsigned char *iom_fpga_text_lcd_addr;
+// fpga global variable
+static unsigned char *iom_fpga_fnd_addr;	// addr of fpga fnd
+static unsigned char *iom_fpga_led_addr;	// addr of fpga led
+static unsigned char *iom_fpga_dot_addr;	// addr of fpga dot
+static unsigned char *iom_fpga_text_lcd_addr;	// addr of fpga text lcd
 
 static struct file_operations dev_fops =
 {
@@ -102,10 +97,10 @@ static struct file_operations dev_fops =
 
 static struct struct_timer{
 	struct timer_list timer;
-	int count;
-	int end_count;
-	int time;
-	unsigned short data;
+	int count;	// start from 0
+	int end_count;	// expire count
+	int time;	// time interval
+	unsigned short data;	// data of input
 };
 
 // timer global variable
@@ -122,11 +117,13 @@ int dev_open(struct inode *minode, struct file *mfile){
 
 int dev_release(struct inode *minode, struct file *mfile){
 	dev_usage = 0;
+
 	return 0;
 }
 
 // turn off devices after finished
 int close_devices(){
+	// set device values to default
 	fnd_write(0);
 	led_write(0);
 	fpga_led_write(0);
@@ -156,19 +153,14 @@ static void kernel_timer_blink(unsigned long timeout){
 	p_data->data = fnd_write(p_data->data);
 
 	// check if count has reached limit
-	//if(p_data->count >= p_data->end_count){
-	//	close_devices();
-	//	return;
-	//}
+	if(p_data->count > p_data->end_count){
+		close_devices();
+		return;
+	}
 
 	mytimer.timer.expires = get_jiffies_64() + (p_data->time * HZ)/10;
 	mytimer.timer.data = (unsigned long)&mytimer;
 	mytimer.timer.function = kernel_timer_blink;
-
-	if(p_data->count >= p_data->end_count){
-		close_devices();
-		return;
-	}
 
 	// decode given input
 	temp_value = p_data->data;
@@ -296,33 +288,34 @@ ssize_t fpga_led_write(const char *gdata){
 	const char led_buff = gdata;
 	unsigned char tmp = 0;
 
+	// position of fpga led 1~8
 	switch(led_buff){
 		case 49:
-			tmp = 128;
+			tmp = 128;	// 2^8
 			break;
 		case 50:
-			tmp = 64;
+			tmp = 64;	// 2^7
 			break;
 		case 51:
-			tmp = 32;
+			tmp = 32;	// 2^6
 			break;
 		case 52:
-			tmp = 16;
+			tmp = 16;	// 2^5
 			break;
 		case 53:
-			tmp = 8;
+			tmp = 8;	// 2^4
 			break;
 		case 54:
-			tmp = 4;
+			tmp = 4;	// 2^3
 			break;
 		case 55:
-			tmp = 2;
+			tmp = 2;	// 2^2
 			break;
 		case 56:
-			tmp = 1;
+			tmp = 1;	// 2^1
 			break;
 		default:
-			tmp = 0;
+			tmp = 0;	// 2^0
 			break;
 	}
 
@@ -337,10 +330,29 @@ ssize_t fpga_fnd_write(const int *gdata){
 	const int fnd_buff = gdata;
 	unsigned char value[4] = {0,};
 
+	// change integer to string
 	sprintf(value, "%4d", fnd_buff);
 
+	// print decreasing count on fpga fnd device
 	for(i=0;i<4;i++)
-		outb(value[i], (unsigned int)iom_fpga_fnd_addr+i);
+		outb(value[i], (unsigned int)iom_fpga_fnd_addr + i);
+
+	return 0;
+}
+
+ssize_t fpga_dot_write(const char *gdata){
+	int i, num;
+	const char dot_buff = gdata;
+	unsigned char value[10] = {0,};
+
+	// copy fpga dot data to local char string
+	num = atoi(dot_buff);
+	for(i=0;i<10;i++)
+		value[i] = fpga_number[num][i];
+
+	// print current type of char on fpga dot device
+	for(i=0;i<10;i++)
+		outb(value[i], (unsigned int)iom_fpga_dot_addr + i);
 
 	return 0;
 }
@@ -352,17 +364,16 @@ ssize_t dev_write(struct file *inode, const long *gdata, size_t length, loff_t *
 	int time, number;
 	unsigned short temp_value;
 
+	// copy user space data to kernel space
 	if(copy_from_user(&kernel_timer_buff, tmp, 4))
 		return -EFAULT;
 
-	// decode given input
-	position = kernel_timer_buff>>24;
-	value = kernel_timer_buff>>16;
-
-	time = kernel_timer_buff<<16;
+	// decode given input (4 byte data stream) using shift operand
+	position = kernel_timer_buff>>24;	// position
+	value = kernel_timer_buff>>16;		// value
+	time = kernel_timer_buff<<16;		// time
 	time = time>>24;
-
-	number = kernel_timer_buff<<24;
+	number = kernel_timer_buff<<24;		// number
 	number = number>>24;
 
 	// set timer data
@@ -371,9 +382,6 @@ ssize_t dev_write(struct file *inode, const long *gdata, size_t length, loff_t *
 	mytimer.time = time;
 	mytimer.data = position;
 	mytimer.data = (mytimer.data<<8)|value;
-	//temp_value = position;
-	//temp_value = (temp_value<<8)|value;
-	//mytimer.data = temp_value;
 
 	// add timer
 	del_timer_sync(&mytimer.timer);
@@ -404,14 +412,14 @@ int __init dev_init(void){
 
 	fnd_data = ioremap(FND_GPL2DAT, 0x01);
 	fnd_data2 = ioremap(FND_GPE3DAT, 0x01);
-	if(fnd_data == NULL){
+	if(fnd_data == NULL){	// error handler for failure
 		printk("FND ioremap failed!\n");
 		return -1;
 	}
 
 	fnd_ctrl = ioremap(FND_GPL2CON, 0x04);
 	fnd_ctrl2 = ioremap(FND_GPE3CON, 0x04);
-	if(fnd_ctrl == NULL){
+	if(fnd_ctrl == NULL){	// error handler for failure
 		printk("FND ioremap failed!\n");
 		return -1;
 	} else{
@@ -419,7 +427,7 @@ int __init dev_init(void){
 		if(fnd_dev != NULL){
 			outl(0x11111111, (unsigned int)fnd_ctrl);
 			outl(0x10010110, (unsigned int)fnd_ctrl2);
-		} else
+		} else	// error handler for failure
 			printk("FND device create : failed!\n");
 	}
 	outb(0xFF, (unsigned int)fnd_data);
