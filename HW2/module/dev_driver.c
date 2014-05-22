@@ -157,7 +157,7 @@ static void kernel_timer_blink(unsigned long timeout){
 	fpga_led_write(value);
 
 	// pass data to fpga fnd device
-	fpga_fnd_write(p_data->end_count - p_data->count);
+	fpga_fnd_write(p_data->end_count - p_data->count + 1);
 
 	// pass data to fpga dot device
 	fpga_dot_write(value);
