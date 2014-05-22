@@ -16,6 +16,8 @@
 #include <mach/regs-gpio.h>
 #include <plat/gpio-cfg.h>
 
+#include "./fpga_dot_font.h"
+
 #define DEV_MAJOR 242	// dev driver major number
 #define DEV_MINOR 0	// dev driver minor number
 #define DEV_NAME "dev_driver"	// dev driver name
@@ -65,6 +67,8 @@ ssize_t led_write(const char *);
 ssize_t fpga_led_write(const char *);
 ssize_t fpga_fnd_write(const int *);
 ssize_t fpga_dot_write(const char *);
+int fpga_text_calculate(int);
+ssize_t fpga_text_write(const char *);
 
 // Global variable
 static int dev_usage = 0;
@@ -101,6 +105,10 @@ static struct struct_timer{
 	int end_count;	// expire count
 	int time;	// time interval
 	unsigned short data;	// data of input
+	unsigned char id[16];	// student id
+	unsigned char name[16];	// student name
+	int id_flag;
+	int name_flag;
 };
 
 // timer global variable
@@ -128,6 +136,8 @@ int close_devices(){
 	led_write(0);
 	fpga_led_write(0);
 	fpga_fnd_write(0);
+	fpga_dot_write(0);
+	fpga_text_calculate(0);
 	return 0;
 }
 
@@ -148,6 +158,12 @@ static void kernel_timer_blink(unsigned long timeout){
 
 	// pass data to fpga fnd device
 	fpga_fnd_write(p_data->end_count - p_data->count);
+
+	// pass data to fpga dot device
+	fpga_dot_write(value);
+
+	// write data to text lcd device
+	fpga_text_calculate(1);
 
 	// pass data to fnd device
 	p_data->data = fnd_write(p_data->data);
@@ -346,7 +362,36 @@ ssize_t fpga_dot_write(const char *gdata){
 	unsigned char value[10] = {0,};
 
 	// copy fpga dot data to local char string
-	num = atoi(dot_buff);
+	switch(dot_buff){
+		case 49:
+			num = 1;
+			break;
+		case 50:
+			num = 2;
+			break;
+		case 51:
+			num = 3;
+			break;
+		case 52:
+			num = 4;
+			break;
+		case 53:
+			num = 5;
+			break;
+		case 54:
+			num = 6;
+			break;
+		case 55:
+			num = 7;
+			break;
+		case 56:
+			num = 8;
+			break;
+		default:
+			num = 0;
+			break;
+	}
+
 	for(i=0;i<10;i++)
 		value[i] = fpga_number[num][i];
 
@@ -357,12 +402,79 @@ ssize_t fpga_dot_write(const char *gdata){
 	return 0;
 }
 
+int fpga_text_calculate(int flag){
+	unsigned char tmp[32];
+	int i;
+
+	if(flag == 1){	// print id and name if flag is 1
+		for(i=0;i<16;i++){
+			tmp[i] = mytimer.id[i];
+			tmp[i+16] = mytimer.name[i];
+		}
+	} else{	// copy NULL value to string for clear
+		for(i=0;i<32;i++)
+			tmp[i] = '\0';
+	}
+
+	// pass data to text lcd device
+	fpga_text_write(&tmp);
+
+	if(flag == 1){
+		if(mytimer.id_flag == 1){
+			for(i=0;i<15;i++)
+				mytimer.id[i+1] = tmp[i];
+			mytimer.id[0] = ' ';
+
+			if(mytimer.id[15] != ' ')
+				mytimer.id_flag = 0;
+		} else{
+			for(i=0;i<15;i++)
+				mytimer.id[i] = tmp[i+1];
+			mytimer.id[15] = ' ';
+
+			if(mytimer.id[0] != ' ')
+				mytimer.id_flag = 1;
+		}
+
+		if(mytimer.name_flag == 1){
+			for(i=0;i<15;i++)
+				mytimer.name[i+1] = tmp[i+16];
+			mytimer.name[0] = ' ';
+
+			if(mytimer.name[15] != ' ')
+				mytimer.name_flag = 0;
+		} else{
+			for(i=0;i<15;i++)
+				mytimer.name[i] = tmp[i+17];
+			mytimer.name[15] = ' ';
+
+			if(mytimer.name[0] != ' ')
+				mytimer.name_flag = 1;
+		}
+	}
+
+	return 0;
+}
+
+ssize_t fpga_text_write(const char *gdata){
+	unsigned char *text_buff = gdata;
+	int i;
+
+	// print current data on fpga text lcd device
+	for(i=0;i<32;i++)
+		outb(text_buff[i], (unsigned int)iom_fpga_text_lcd_addr + i);
+
+	return 0;
+}
+
 ssize_t dev_write(struct file *inode, const long *gdata, size_t length, loff_t *off_what){
 	const long *tmp = gdata;
 	long kernel_timer_buff = 0;
 	char position, value;
-	int time, number;
+	int time, number, i;
 	unsigned short temp_value;
+	unsigned char id[16] = "20091648        ";
+	unsigned char name[16] = "Lee Jun Ho      ";
 
 	// copy user space data to kernel space
 	if(copy_from_user(&kernel_timer_buff, tmp, 4))
@@ -382,6 +494,12 @@ ssize_t dev_write(struct file *inode, const long *gdata, size_t length, loff_t *
 	mytimer.time = time;
 	mytimer.data = position;
 	mytimer.data = (mytimer.data<<8)|value;
+	for(i=0;i<16;i++){
+		mytimer.id[i] = id[i];
+		mytimer.name[i] = name[i];
+	}
+	mytimer.id_flag = 1;
+	mytimer.name_flag = 1;
 
 	// add timer
 	del_timer_sync(&mytimer.timer);

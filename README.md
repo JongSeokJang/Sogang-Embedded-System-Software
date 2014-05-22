@@ -82,4 +82,12 @@ Implement program with system call programming, module programming and device dr
 - module is still work is progress
 	- finding hard to unite all device drivers
 
+**'14. 05. 22.**
+- most of module implementation is complete
+	- start to working on text lcd and dot drivers
+- application test complete
+- system call test complete
+- all module device integration complete and works properly
+	- need to modify characters printed on the device
+
 ### Work in progress...
