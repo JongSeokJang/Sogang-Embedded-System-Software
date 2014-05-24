@@ -93,4 +93,8 @@ Implement program with system call programming, module programming and device dr
 - all requirements are finished
 	- plan to modify code to ioctl style
 
-### Work in progress...
+**'14. 04. 24.**
+- documentating the project
+
+###Result
+Completed all the requirements with documentation
