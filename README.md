@@ -98,3 +98,11 @@ Implement program with system call programming, module programming and device dr
 
 ###Result
 Completed all the requirements with documentation
+
+## 3rd Assignment
+### Goal
+Implement simple stopwatch program with module programming, device driver implementation, interrupt and etc
+
+### Implementation
+1. Develop module that has function of stopwatch with gpio fnd device driver, timer module and interrupt in it
+2. Develop application that runs with the module above
