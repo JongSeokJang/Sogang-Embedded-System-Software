@@ -93,7 +93,7 @@ Implement program with system call programming, module programming and device dr
 - all requirements are finished
 	- plan to modify code to ioctl style
 
-**'14. 04. 24.**
+**'14. 05. 24.**
 - documentating the project
 
 ###Result
@@ -106,3 +106,7 @@ Implement simple stopwatch program with module programming, device driver implem
 ### Implementation
 1. Develop module that has function of stopwatch with gpio fnd device driver, timer module and interrupt in it
 2. Develop application that runs with the module above
+
+### Progress
+**'14. 05. 27.**
+- start to analize requirements of the project
