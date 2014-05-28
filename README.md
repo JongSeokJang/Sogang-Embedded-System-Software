@@ -110,3 +110,16 @@ Implement simple stopwatch program with module programming, device driver implem
 ### Progress
 **'14. 05. 27.**
 - start to analize requirements of the project
+
+## 4th Assignment
+### Goal
+Implement simple java application program
+
+### Implementation
+1. Develop executable application on the board
+2. Develop all buttons with linear layout
+
+### Notice
+This assignment is concurrently developing with assignment 3
+
+### Progress
