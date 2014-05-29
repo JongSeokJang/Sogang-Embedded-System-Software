@@ -111,6 +111,12 @@ Implement simple stopwatch program with module programming, device driver implem
 **'14. 05. 27.**
 - start to analize requirements of the project
 
+**'14. 05. 29.**
+- basic internal stopwatch function finished
+	- need to be printed on the FND device
+	- quit button has to be done
+- rough draft of app (has to be modified)
+
 ## 4th Assignment
 ### Goal
 Implement simple java application program
