@@ -53,6 +53,7 @@ static struct struct_mydata{
 
 // Global variables
 static int stopwatch_usage = 0;
+static int quit_flag = 1;
 
 // gpio fnd global variables
 static unsigned char *fnd_data;
@@ -62,6 +63,7 @@ static unsigned int *fnd_ctrl2;
 
 // timer module global variable
 struct struct_mydata mydata;
+struct struct_mydata quit_timer;
 
 // interrupt module global variable
 int interruptCount = 0;
@@ -80,11 +82,18 @@ static void kernel_timer_blink(unsigned long timeout){
 	printk("%d : %d\n", min, sec);
 
 	// set timer
-	mydata.timer.expires = get_jiffies_64() + (1 * HZ) / 10;
+	mydata.timer.expires = get_jiffies_64() + (1 * HZ);
 	mydata.timer.data = (unsigned long)&mydata;
 	mydata.timer.function = kernel_timer_blink;
 
 	add_timer(&mydata.timer);
+}
+
+// function for terminating program
+static void kernel_quit_timer(unsigned long timeout){
+	printk("program terminated!\n");
+	del_timer_sync(&quit_timer.timer);
+	quit_flag = 0;
 }
 
 // start stop watch when SW1 button pressed (interrupt)
@@ -126,7 +135,16 @@ irqreturn_t inter_handler3(int irq, void *dev_id, struct pt_regs *reg){
 irqreturn_t inter_handler4(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch quiting\n");
 
-	//TODO : detect 3 seconds of pressing and terminate program
+	// check if user is pressing button for 3 seconds
+	if(gpio_get_value(S5PV310_GPX2(4)))
+		del_timer_sync(&quit_timer.timer);
+	else{
+		// add timer for terminating program
+		quit_timer.timer.expires = jiffies + (3 * HZ);
+		quit_timer.timer.function = kernel_quit_timer;
+		add_timer(&quit_timer.timer);
+	}
+
 	return IRQ_HANDLED;
 }
 
@@ -171,9 +189,81 @@ int stopwatch_release(struct inode *minode, struct file *mfile){
 	return 0;
 }
 
+char convertChar(int num){
+	char chr = 0;
+
+	switch(num){
+		case 0:
+			chr = 0x03;
+			break;
+		case 1:
+			chr = 0x9F;
+			break;
+		case 2:
+			chr = 0x25;
+			break;
+		case 3:
+			chr = 0x0D;
+			break;
+		case 4:
+			chr = 0x99;
+			break;
+		case 5:
+			chr = 0x49;
+			break;
+		case 6:
+			chr = 0xC1;
+			break;
+		case 7:
+			chr = 0x1F;
+			break;
+		case 8:
+			chr = 0x01;
+			break;
+		case 9:
+			chr = 0x09;
+			break;
+	}
+	return chr;
+}
+
 ssize_t stopwatch_write(struct file *inode, const short *gdata, size_t length, loff_t *off_what){
-	//TODO : write time to FND device
-	return length;
+	char sel, dat;
+	int min, sec;
+
+	printk("stopwatch write entered\n");
+
+	while(quit_flag){
+		min = mydata.count / 60;
+		sec = mydata.count % 60;
+
+		sel = 0x80;
+		outb(sel, (unsigned int)fnd_data2);
+		dat = convertChar(sec%10);
+		outb(dat, (unsigned int)fnd_data);
+		msleep(2);
+
+		sel = 0x10;
+		outb(sel, (unsigned int)fnd_data2);
+		dat = convertChar(sec/10);
+		outb(dat, (unsigned int)fnd_data);
+		msleep(2);
+
+		sel = 0x04;
+		outb(sel, (unsigned int)fnd_data2);
+		dat = convertChar(min%10);
+		outb(dat, (unsigned int)fnd_data);
+		msleep(2);
+
+		sel = 0x02;
+		outb(sel, (unsigned int)fnd_data2);
+		dat = convertChar(min/10);
+		outb(dat, (unsigned int)fnd_data);
+		msleep(2);
+	}
+
+	printk("returning 0\n");
+	return 0;
 }
 
 int __init stopwatch_init(void){
@@ -219,7 +309,9 @@ int __init stopwatch_init(void){
 	outb(0xFF, (unsigned int)fnd_data);
 	// FND driver initialization ended
 
+	// initialize timers
 	init_timer(&(mydata.timer));
+	init_timer(&(quit_timer.timer));
 
 	printk("init module, /dev/stopwatch major : %d\n", DEV_MAJOR);
 

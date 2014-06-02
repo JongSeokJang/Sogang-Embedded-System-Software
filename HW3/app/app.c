@@ -6,7 +6,7 @@
 #define DEV_NAME "/dev/stopwatch"
 
 int main(int argc, char *argv[]){
-	int dev;
+	int dev, ret;
 	unsigned int gdata = 0;
 
 	dev = open(DEV_NAME, O_WRONLY);
@@ -15,8 +15,10 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	write(dev, &gdata, 0);
-	while(1){}
+	ret = write(dev, &gdata, 0);
+	while(ret){
+		printf("%d\n", ret);
+	}
 
 	close(dev);
 

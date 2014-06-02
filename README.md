@@ -117,6 +117,11 @@ Implement simple stopwatch program with module programming, device driver implem
 	- quit button has to be done
 - rough draft of app (has to be modified)
 
+**'14. 06. 02.**
+- time print on fnd device complete
+- have problem with termination
+	- device freeze after terminate
+
 ## 4th Assignment
 ### Goal
 Implement simple java application program
