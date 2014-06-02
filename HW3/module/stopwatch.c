@@ -72,9 +72,11 @@ static void kernel_timer_blink(unsigned long timeout){
 
 	p_data->count++;
 
+	// calculate minutes and seconds
 	min = p_data->count / 60;
 	sec = p_data->count % 60;
 
+	//XXX delete this
 	printk("%d : %d\n", min, sec);
 
 	// set timer
@@ -85,6 +87,7 @@ static void kernel_timer_blink(unsigned long timeout){
 	add_timer(&mydata.timer);
 }
 
+// start stop watch when SW1 button pressed (interrupt)
 irqreturn_t inter_handler1(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch started\n");
 
@@ -98,6 +101,7 @@ irqreturn_t inter_handler1(int irq, void *dev_id, struct pt_regs *reg){
 	return IRQ_HANDLED;
 }
 
+// pause stop watch when SW2 button pressed (interrupt)
 irqreturn_t inter_handler2(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch paused\n");
 
@@ -107,6 +111,7 @@ irqreturn_t inter_handler2(int irq, void *dev_id, struct pt_regs *reg){
 	return IRQ_HANDLED;
 }
 
+// reset stop watch when SW3 button pressed (interrupt)
 irqreturn_t inter_handler3(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch reseted\n");
 
@@ -117,8 +122,11 @@ irqreturn_t inter_handler3(int irq, void *dev_id, struct pt_regs *reg){
 	return IRQ_HANDLED;
 }
 
+// terminate program when SW4 button pressed for 3 seconds (interrupt)
 irqreturn_t inter_handler4(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch quiting\n");
+
+	//TODO : detect 3 seconds of pressing and terminate program
 	return IRQ_HANDLED;
 }
 
@@ -136,7 +144,7 @@ int stopwatch_open(struct inode *minode, struct file *mfile){
 	   *	SW4 : GPX2(2)
 	   *	SW6 : GPX2(4)
 	   *
-	   *	PRESS-FAlling - 0
+	   *	PRESS-FALLING - 0
 	   *	RELEASE_RISING - 1
 	*/
 	ret = request_irq(gpio_to_irq(S5PV310_GPX2(0)), &inter_handler1, IRQF_TRIGGER_FALLING, "X2.0", NULL);	// SW2
@@ -164,6 +172,7 @@ int stopwatch_release(struct inode *minode, struct file *mfile){
 }
 
 ssize_t stopwatch_write(struct file *inode, const short *gdata, size_t length, loff_t *off_what){
+	//TODO : write time to FND device
 	return length;
 }
 
@@ -176,6 +185,7 @@ int __init stopwatch_init(void){
 
 	printk("stopwatch module init\n");
 
+	// register device driver
 	result = register_chrdev(DEV_MAJOR, DEV_NAME, &stopwatch_fops);
 	if(result < 0){
 		printk(KERN_WARNING"Can't get any major!\n");
@@ -190,6 +200,7 @@ int __init stopwatch_init(void){
 		return -1;
 	}
 
+	// mapping address of fnd driver
 	fnd_ctrl = ioremap(FND_GPL2CON, 0x04);
 	fnd_ctrl2 = ioremap(FND_GPE3CON, 0x04);
 	if(fnd_ctrl == NULL){
@@ -219,6 +230,7 @@ void __exit stopwatch_exit(void){
 	// remove timer
 	del_timer_sync(&mydata.timer);
 
+	// unregister device driver
 	unregister_chrdev(DEV_MAJOR, DEV_NAME);
 	printk("Stopwatch module removed.\n");
 }
