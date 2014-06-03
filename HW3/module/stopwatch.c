@@ -70,16 +70,9 @@ int interruptCount = 0;
 
 static void kernel_timer_blink(unsigned long timeout){
 	struct struct_mydata *p_data = (struct struct_mydata *)timeout;
-	int min, sec;
 
+	// increase timer count
 	p_data->count++;
-
-	// calculate minutes and seconds
-	min = p_data->count / 60;
-	sec = p_data->count % 60;
-
-	//XXX delete this
-	printk("%d : %d\n", min, sec);
 
 	// set timer
 	mydata.timer.expires = get_jiffies_64() + (1 * HZ);
@@ -92,7 +85,8 @@ static void kernel_timer_blink(unsigned long timeout){
 // function for terminating program
 static void kernel_quit_timer(unsigned long timeout){
 	printk("program terminated!\n");
-	del_timer_sync(&quit_timer.timer);
+
+	// set quit flag
 	quit_flag = 0;
 }
 
@@ -100,8 +94,9 @@ static void kernel_quit_timer(unsigned long timeout){
 irqreturn_t inter_handler1(int irq, void *dev_id, struct pt_regs *reg){
 	printk("stopwatch started\n");
 
+	// start stopwatch increase every 1 second
 	del_timer_sync(&mydata.timer);
-	mydata.timer.expires = jiffies + (1 * HZ)/10;
+	mydata.timer.expires = jiffies + (1 * HZ);
 	mydata.timer.data = (unsigned long)&mydata;
 	mydata.timer.function = kernel_timer_blink;
 
@@ -154,7 +149,10 @@ int stopwatch_open(struct inode *minode, struct file *mfile){
 	if(stopwatch_usage != 0)
 		return -EBUSY;
 
+	// set to default value
 	stopwatch_usage = 1;
+	quit_flag = 1;
+	mydata.count = 0;
 
 	/*
 	   *	SW2 : GPX2(0)
@@ -165,6 +163,8 @@ int stopwatch_open(struct inode *minode, struct file *mfile){
 	   *	PRESS-FALLING - 0
 	   *	RELEASE_RISING - 1
 	*/
+
+	// set interrupt requests
 	ret = request_irq(gpio_to_irq(S5PV310_GPX2(0)), &inter_handler1, IRQF_TRIGGER_FALLING, "X2.0", NULL);	// SW2
 	ret = request_irq(gpio_to_irq(S5PV310_GPX2(1)), &inter_handler2, IRQF_TRIGGER_FALLING, "X2.1", NULL);	// SW3
 	ret = request_irq(gpio_to_irq(S5PV310_GPX2(2)), &inter_handler3, IRQF_TRIGGER_FALLING, "X2.2", NULL);	// SW4
@@ -178,6 +178,13 @@ int stopwatch_open(struct inode *minode, struct file *mfile){
 int stopwatch_release(struct inode *minode, struct file *mfile){
 	stopwatch_usage = 0;
 
+	// remove timers
+	del_timer_sync(&mydata.timer);
+	del_timer_sync(&quit_timer.timer);
+
+	// fnd device off
+	outb(0x00, (unsigned int)fnd_data2);
+	
 	// release interrupt
 	free_irq(gpio_to_irq(S5PV310_GPX2(0)), NULL);
 	free_irq(gpio_to_irq(S5PV310_GPX2(1)), NULL);
@@ -234,35 +241,42 @@ ssize_t stopwatch_write(struct file *inode, const short *gdata, size_t length, l
 	printk("stopwatch write entered\n");
 
 	while(quit_flag){
+		// count minutes and seconds
 		min = mydata.count / 60;
 		sec = mydata.count % 60;
 
+		// if min reaches max value set to 0
+		if(min == 60){
+			mydata.count = 0;
+			min = 0;
+		}
+
+		// print values on fnd device
 		sel = 0x80;
 		outb(sel, (unsigned int)fnd_data2);
 		dat = convertChar(sec%10);
 		outb(dat, (unsigned int)fnd_data);
-		msleep(2);
+		msleep(5);
 
 		sel = 0x10;
 		outb(sel, (unsigned int)fnd_data2);
 		dat = convertChar(sec/10);
 		outb(dat, (unsigned int)fnd_data);
-		msleep(2);
+		msleep(5);
 
 		sel = 0x04;
 		outb(sel, (unsigned int)fnd_data2);
 		dat = convertChar(min%10);
 		outb(dat, (unsigned int)fnd_data);
-		msleep(2);
+		msleep(5);
 
 		sel = 0x02;
 		outb(sel, (unsigned int)fnd_data2);
 		dat = convertChar(min/10);
 		outb(dat, (unsigned int)fnd_data);
-		msleep(2);
+		msleep(5);
 	}
 
-	printk("returning 0\n");
 	return 0;
 }
 
@@ -319,9 +333,6 @@ int __init stopwatch_init(void){
 }
 
 void __exit stopwatch_exit(void){
-	// remove timer
-	del_timer_sync(&mydata.timer);
-
 	// unregister device driver
 	unregister_chrdev(DEV_MAJOR, DEV_NAME);
 	printk("Stopwatch module removed.\n");

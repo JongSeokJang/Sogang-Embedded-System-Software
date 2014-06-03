@@ -122,6 +122,11 @@ Implement simple stopwatch program with module programming, device driver implem
 - have problem with termination
 	- device freeze after terminate
 
+**'14. 06. 03.**
+- fixed known bug (device freezing)
+- complete of assignment 3 (all requirements satisfied)
+- little modification of time counting
+
 ## 4th Assignment
 ### Goal
 Implement simple java application program

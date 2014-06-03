@@ -20,6 +20,8 @@ int main(int argc, char *argv[]){
 		printf("%d\n", ret);
 	}
 
+	printf("finished?!\n");
+
 	close(dev);
 
 	return 0;
