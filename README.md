@@ -139,3 +139,8 @@ Implement simple java application program
 This assignment is concurrently developing with assignment 3
 
 ### Progress
+**'14. 06. 03.**
+- start to working on android application running on the board
+- main acitivity is complete
+- music activity is complete
+- proc parsing & puzzle game activity has to be done
