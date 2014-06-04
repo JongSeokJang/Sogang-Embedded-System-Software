@@ -6,3 +6,4 @@ Session.vim
 .netrwhist
 .DS_Store
 *~
+/kernel

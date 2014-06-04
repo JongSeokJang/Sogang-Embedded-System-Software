@@ -16,11 +16,7 @@ int main(int argc, char *argv[]){
 	}
 
 	ret = write(dev, &gdata, 0);
-	while(ret){
-		printf("%d\n", ret);
-	}
-
-	printf("finished?!\n");
+	while(ret){}
 
 	close(dev);
 

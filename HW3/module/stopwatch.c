@@ -65,9 +65,6 @@ static unsigned int *fnd_ctrl2;
 struct struct_mydata mydata;
 struct struct_mydata quit_timer;
 
-// interrupt module global variable
-int interruptCount = 0;
-
 static void kernel_timer_blink(unsigned long timeout){
 	struct struct_mydata *p_data = (struct struct_mydata *)timeout;
 
