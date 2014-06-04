@@ -127,6 +127,10 @@ Implement simple stopwatch program with module programming, device driver implem
 - complete of assignment 3 (all requirements satisfied)
 - little modification of time counting
 
+**'14. 06. 04.**
+- few modification of source code
+	- removal of unnecessary codes
+
 ## 4th Assignment
 ### Goal
 Implement simple java application program
@@ -144,3 +148,7 @@ This assignment is concurrently developing with assignment 3
 - main acitivity is complete
 - music activity is complete
 - proc parsing & puzzle game activity has to be done
+
+**'14. 06. 04.**
+- rough draft of proc parsing
+- working on layout of dynamic button creation

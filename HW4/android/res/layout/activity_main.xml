@@ -5,6 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/student_id"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="20091648" />
+
     <Button
         android:id="@+id/music_button"
         android:layout_width="match_parent"
@@ -22,11 +28,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Puzzle Game" />
-
-    <TextView
-        android:id="@+id/student_id"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="20091648" />
     
 </LinearLayout>
