@@ -152,3 +152,10 @@ This assignment is concurrently developing with assignment 3
 **'14. 06. 04.**
 - rough draft of proc parsing
 - working on layout of dynamic button creation
+
+**'14. 06. 05.**
+- modifiying incomplete functions
+- fixing bugs
+
+**'14. 06. 06.**
+- finished all requirements

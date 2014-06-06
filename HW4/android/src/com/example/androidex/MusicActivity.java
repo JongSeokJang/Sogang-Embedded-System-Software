@@ -20,12 +20,15 @@ public class MusicActivity extends Activity{
 		setContentView(R.layout.activity_music);
 		linear = (LinearLayout)findViewById(R.id.container);
 		
+		// Initialize buttons from view found by ID
 		btn_start = (Button)findViewById(R.id.btn_start);
 		btn_pause = (Button)findViewById(R.id.btn_pause);
 		btn_stop = (Button)findViewById(R.id.btn_stop);
 		
+		// Create music to play
 		mp1 = MediaPlayer.create(this, R.raw.hello);
 		
+		// Add listener for start music
 		start_listener = new OnClickListener(){
 			@Override
 			public void onClick(View v){
@@ -34,6 +37,7 @@ public class MusicActivity extends Activity{
 		};
 		btn_start.setOnClickListener(start_listener);
 		
+		// Add listener for pause music
 		pause_listener = new OnClickListener(){
 			@Override
 			public void onClick(View v){
@@ -44,6 +48,7 @@ public class MusicActivity extends Activity{
 		};
 		btn_pause.setOnClickListener(pause_listener);
 		
+		// Add listener for stop music and go back to previous activity
 		stop_listener = new OnClickListener(){
 			@Override
 			public void onClick(View v){
@@ -54,6 +59,7 @@ public class MusicActivity extends Activity{
 		btn_stop.setOnClickListener(stop_listener);
 	}
 	
+	// Stop music if physical back button pressed
 	public boolean onKeyDown(int keyCode, android.view.KeyEvent event){
 		mp1.stop();
 		
