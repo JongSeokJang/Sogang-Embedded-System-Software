@@ -162,3 +162,6 @@ This assignment is concurrently developing with assignment 3
 
 **'14. 06. 06.**
 - finished all requirements
+
+### Result
+Completed all the requirements with documentation
