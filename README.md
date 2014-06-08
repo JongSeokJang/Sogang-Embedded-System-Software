@@ -101,35 +101,38 @@ Completed all the requirements with documentation
 
 ## 3rd Assignment
 ### Goal
-Implement simple stopwatch program with module programming, device driver implementation, interrupt and etc
+	Implement simple stopwatch program with module programming, device driver implementation, interrupt and etc
 
 ### Implementation
-1. Develop module that has function of stopwatch with gpio fnd device driver, timer module and interrupt in it
-2. Develop application that runs with the module above
+	1. Develop module that has function of stopwatch with gpio fnd device driver, timer module and interrupt in it
+	2. Develop application that runs with the module above
 
 ### Progress
-**'14. 05. 27.**
-- start to analize requirements of the project
+	**'14. 05. 27.**
+	- start to analize requirements of the project
 
-**'14. 05. 29.**
-- basic internal stopwatch function finished
-	- need to be printed on the FND device
-	- quit button has to be done
-- rough draft of app (has to be modified)
+	**'14. 05. 29.**
+	- basic internal stopwatch function finished
+		- need to be printed on the FND device
+		- quit button has to be done
+	- rough draft of app (has to be modified)
 
-**'14. 06. 02.**
-- time print on fnd device complete
-- have problem with termination
-	- device freeze after terminate
+	**'14. 06. 02.**
+	- time print on fnd device complete
+	- have problem with termination
+		- device freeze after terminate
 
-**'14. 06. 03.**
-- fixed known bug (device freezing)
-- complete of assignment 3 (all requirements satisfied)
-- little modification of time counting
+	**'14. 06. 03.**
+	- fixed known bug (device freezing)
+	- complete of assignment 3 (all requirements satisfied)
+	- little modification of time counting
 
-**'14. 06. 04.**
-- few modification of source code
-	- removal of unnecessary codes
+	**'14. 06. 04.**
+	- few modification of source code
+		- removal of unnecessary codes
+
+###Result
+	Completed all the requirements with documetation
 
 ## 4th Assignment
 ### Goal
