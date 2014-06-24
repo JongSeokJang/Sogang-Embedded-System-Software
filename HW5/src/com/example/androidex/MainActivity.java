@@ -3,6 +3,7 @@ package com.example.androidex;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -11,7 +12,7 @@ import android.widget.LinearLayout;
 
 
 public class MainActivity extends Activity{
-
+	
 	LinearLayout linear;
 	Button btn_text, btn_figure, btn_watch, btn_puzzle, btn_mode, btn_quit;
 	OnClickListener text_listener, figure_listener, watch_listener;
@@ -88,5 +89,4 @@ public class MainActivity extends Activity{
 		btn_mode.setOnClickListener(mode_listener);
 		btn_quit.setOnClickListener(quit_listener);
 	}
-
 }

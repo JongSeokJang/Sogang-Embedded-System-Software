@@ -14,6 +14,8 @@ import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 
 public class PuzzleActivity extends Activity {
+	
+	public native void PuzzleCount();
 
 	LinearLayout linear;
 	OnClickListener create_listener, move_listener;
@@ -27,6 +29,10 @@ public class PuzzleActivity extends Activity {
 		setContentView(R.layout.activity_puzzle);
 		linear = (LinearLayout) findViewById(R.id.container);
 
+		// Load C Library
+		System.loadLibrary("dangercloz_module");
+		PuzzleCount();
+		
 		// Initialize objects from view found by ID
 		btn_start = (Button) findViewById(R.id.btn_start);
 		input_text = (EditText) findViewById(R.id.puzzle_input);
@@ -69,6 +75,7 @@ public class PuzzleActivity extends Activity {
 									dynamic_array = new Button[row * col];
 									create_buttons(row, col);
 									mix_puzzle(row, col);
+									PuzzleCount();
 								}
 							}
 						}

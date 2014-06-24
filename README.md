@@ -175,6 +175,7 @@ By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by c
 - implemented basic layout of application required
 - implemented puzzle game in java (not yet implemented app->board)
 - application termination complete
+- working on JNI
 
 ### TODO
 - [ ] Implement text editor

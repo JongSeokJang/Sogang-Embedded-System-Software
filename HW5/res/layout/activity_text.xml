@@ -45,7 +45,7 @@
     </LinearLayout>
 
     <EditText
-        android:id="@+id/editText2"
+        android:id="@+id/text_length"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Text Length : "
@@ -56,7 +56,7 @@
         android:layout_height="wrap_content" >
 
         <EditText
-            android:id="@+id/editText3"
+            android:id="@+id/text_usage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
