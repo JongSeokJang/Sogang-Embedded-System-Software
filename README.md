@@ -177,9 +177,9 @@ By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by c
 - application termination complete
 
 ### TODO
-[ ] Implement text editor
-[ ] Implement Figure Switch
-[ ] Implement Watch
-[ ] Implement Puzzle
-[ ] Implement My Mode
-[x] Implement Quit
+- [ ] Implement text editor
+- [ ] Implement Figure Switch
+- [ ] Implement Watch
+- [ ] Implement Puzzle
+- [ ] Implement My Mode
+- [x] Implement Quit
