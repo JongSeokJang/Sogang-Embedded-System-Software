@@ -165,3 +165,21 @@ This assignment is concurrently developing with assignment 3
 
 ### Result
 Completed all the requirements with documentation
+
+## 5th Assignment
+### Goal
+By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by controlling device driver
+
+### Progress
+**'14. 06. 24.**
+- implemented basic layout of application required
+- implemented puzzle game in java (not yet implemented app->board)
+- application termination complete
+
+### TODO
+[ ] Implement text editor
+[ ] Implement Figure Switch
+[ ] Implement Watch
+[ ] Implement Puzzle
+[ ] Implement My Mode
+[x] Implement Quit

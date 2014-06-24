@@ -17,6 +17,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name="com.example.androidex.TextActivity"></activity>
+        <activity android:name="com.example.androidex.FigureActivity"></activity>
+        <activity android:name="com.example.androidex.WatchActivity"></activity>
+        <activity android:name="com.example.androidex.PuzzleActivity"></activity>
+        <activity android:name="com.example.androidex.ModeActivity"></activity>
     </application>
 
 </manifest>
