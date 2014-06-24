@@ -14,7 +14,7 @@ public class FigureActivity extends Activity{
 
 	LinearLayout linear;
 	OnClickListener go_listener, main_listener, clear_listener;
-	EditText input;
+	EditText input_text;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +29,7 @@ public class FigureActivity extends Activity{
 		Button btn_go = (Button)findViewById(R.id.btn_go);
 		Button btn_main = (Button)findViewById(R.id.btn_main);
 		Button btn_clear = (Button)findViewById(R.id.btn_clear);
-		input = (EditText)findViewById(R.id.figure_input);
+		input_text = (EditText)findViewById(R.id.figure_input);
 		
 		// Initialize listeners for each buttons
 		go_listener = new OnClickListener(){
@@ -39,51 +39,31 @@ public class FigureActivity extends Activity{
 				String[] columns = null;
 				
 				// Extract input from edit text
-				/*
-				 * String text;
-				String[] columns = null;
-
-				// Extract input from edit text
-				text = input_text.getText().toString();
-
+				text = input.getText().toString();
+				
 				// Continue if user typed input
-				if (text.length() != 0) {
-					columns = text.split(" "); // split two inputs
-
-					// Continue only if 2 inputs are in the string
-					if (columns.length == 2) {
-						int row = 0, col = 0;
-
-						// Check if both inputs are numbers between 1~5
-						Pattern ps = Pattern.compile("^[1-5]+$");
-						if (ps.matcher(columns[0]).matches())
-							row = Integer.parseInt(columns[0]);
-						if (ps.matcher(columns[1]).matches())
-							col = Integer.parseInt(columns[1]);
-
-						// Create puzzle if both inputs are available
-						if (row != 0 && col != 0) {
-							if (row == 1 && col == 1) {
-							} // 1x1 puzzle is impossible
-							else {
-								// Check if buttons have created or not
-								if (dynamic_array != null) {
-								} // Nothing happens
-								else {
-									// Create buttons if this is first time
-									dynamic_array = new Button[row * col];
-									create_buttons(row, col);
-									mix_puzzle(row, col);
-									PuzzleCount();
-								}
-							}
-						}
+				if(text.length() != 0){
+					columns = text.split(" ");	// split inputs
+					
+					// Continue only if 3 inputs are in the string
+					if(columns.length == 3){
+						int time, num;
+						char option[4];
+						
+						// Check if inputs are numbers
+						Pattern ps = Pattern.compile("^[0-9]+$");
+						if(ps.matcher(columns[0]).matches())
+							time = Integer.parseInt(columns[0]);
+						if(ps.matcher(columns[1]).matches())
+							num = Integer.parseInt(columns[1]);
+						//if(ps.matcher(columns[2]).matches())
+						// copy string to option
+						
+						// TODO : check if another thread is running
+						// if yes, stop the thread, and start this one with new time, value, option
+						// if no, just start this one with given parameters
 					}
 				}
-			}
-		};
-		btn_start.setOnClickListener(create_listener);
-				 */
 			}
 		};
 		
