@@ -6,6 +6,10 @@
 #include <dirent.h>
 #include <errno.h>
 #include "fpga_dot_font.h"
+#include "android/log.h"
+
+#define LOG_TAG "MyTag"
+#define LOGV(...)   __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
 
 void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject thiz, jstring string){
 	int text_dev, fpga_fnd, fpga_dot, fpga_led;
@@ -13,6 +17,7 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	unsigned char led;
 	unsigned char data[4];
 	unsigned char text[32];
+	unsigned char temp[32];
 
 	// Open fpga text lcd driver
 	if((text_dev = open("/dev/fpga_text_lcd", O_WRONLY)) < 0)
@@ -36,11 +41,19 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	const char *str = (*env)->GetStringUTFChars(env, string, 0);
 	length = (*env)->GetStringLength(env, string);
 
-	// Clear unnecessary chars
-	text_size = strlen(str);
-	if(text_size > 0){
-		strncat(text, str, text_size);
-		memset(text+text_size, ' ', 32-text_size);
+	LOGV("log test %d", length);
+
+	if(length == 0){
+		for(i=0;i<32;i++)
+			temp[i] = '\0';
+	} else {
+		text_size = strlen(str);
+		if (text_size > 0) {
+			strncat(temp, str, text_size);
+			memset(temp + text_size, ' ', 32 - text_size);
+		}
+		for (i = 0; i < text_size; i++)
+			temp[i] = str[i];
 	}
 
 	// Convert integer to string format
@@ -51,7 +64,7 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	length = length % 10;
 
 	// Print on devices
-	write(text_dev, text, 32);	// fpga text lcd
+	write(text_dev, temp, 32);	// fpga text lcd
 	write(fpga_fnd, &data, 4);	// fpga fnd
 	if(str[0] == '\0')
 		write(fpga_dot, fpga_set_blank, str_size);

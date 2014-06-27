@@ -53,8 +53,7 @@
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/linux/errno.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm/errno.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno.h \
- /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h \
- /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/linux/kernel.h
+ /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h
 
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/jni.h:
 
@@ -163,5 +162,3 @@
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno.h:
 
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h:
-
-/root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/linux/kernel.h:

@@ -15,13 +15,17 @@ import android.widget.LinearLayout.LayoutParams;
 
 public class PuzzleActivity extends Activity {
 	
-	public native void PuzzleCount();
+	public native void PuzzleCount(String time_left);
+	public native void PuzzleScoring(String score);
 
 	LinearLayout linear;
 	OnClickListener create_listener, move_listener;
 	Button btn_start;
 	EditText input_text;
 	Button dynamic_array[];
+	puzzleScore thread;
+	int rrow, ccol;
+	boolean playing;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -31,11 +35,12 @@ public class PuzzleActivity extends Activity {
 
 		// Load C Library
 		System.loadLibrary("dangercloz_module");
-		PuzzleCount();
 		
 		// Initialize objects from view found by ID
 		btn_start = (Button) findViewById(R.id.btn_start);
 		input_text = (EditText) findViewById(R.id.puzzle_input);
+		
+		thread = new puzzleScore();
 
 		// Initialize listeners
 		create_listener = new OnClickListener() {
@@ -75,7 +80,9 @@ public class PuzzleActivity extends Activity {
 									dynamic_array = new Button[row * col];
 									create_buttons(row, col);
 									mix_puzzle(row, col);
-									PuzzleCount();
+									thread.start();
+									rrow = row;	ccol = col;
+									playing = true;
 								}
 							}
 						}
@@ -137,76 +144,83 @@ public class PuzzleActivity extends Activity {
 							}
 						}
 
-						// Check for movement availability
-						if (row - 1 >= 0) {
-							if ((dynamic_array[(row - 1) * c + col].getText()
-									.toString()).equals(String.valueOf(r * c))) {
-								// Exchange button with above
-								dynamic_array[(row * c) + col].setText(String
-										.valueOf(r * c));
-								dynamic_array[(row * c) + col]
-										.setBackgroundColor(Color.BLACK);
+						if (playing) {
+							// Check for movement availability
+							if (row - 1 >= 0) {
+								if ((dynamic_array[(row - 1) * c + col]
+										.getText().toString()).equals(String
+										.valueOf(r * c))) {
+									// Exchange button with above
+									dynamic_array[(row * c) + col]
+											.setText(String.valueOf(r * c));
+									dynamic_array[(row * c) + col]
+											.setBackgroundColor(Color.BLACK);
 
-								dynamic_array[(row - 1) * c + col]
-										.setText(current_button);
-								dynamic_array[(row - 1) * c + col]
-										.setBackgroundResource(android.R.drawable.btn_default);
+									dynamic_array[(row - 1) * c + col]
+											.setText(current_button);
+									dynamic_array[(row - 1) * c + col]
+											.setBackgroundResource(android.R.drawable.btn_default);
+								}
 							}
-						}
 
-						if (row + 1 < r) {
-							if ((dynamic_array[(row + 1) * c + col].getText()
-									.toString()).equals(String.valueOf(r * c))) {
-								// Exchange button with below
-								dynamic_array[(row * c) + col].setText(String
-										.valueOf(r * c));
-								dynamic_array[(row * c) + col]
-										.setBackgroundColor(Color.BLACK);
+							if (row + 1 < r) {
+								if ((dynamic_array[(row + 1) * c + col]
+										.getText().toString()).equals(String
+										.valueOf(r * c))) {
+									// Exchange button with below
+									dynamic_array[(row * c) + col]
+											.setText(String.valueOf(r * c));
+									dynamic_array[(row * c) + col]
+											.setBackgroundColor(Color.BLACK);
 
-								dynamic_array[(row + 1) * c + col]
-										.setText(current_button);
-								dynamic_array[(row + 1) * c + col]
-										.setBackgroundResource(android.R.drawable.btn_default);
+									dynamic_array[(row + 1) * c + col]
+											.setText(current_button);
+									dynamic_array[(row + 1) * c + col]
+											.setBackgroundResource(android.R.drawable.btn_default);
+								}
 							}
-						}
 
-						if (col - 1 >= 0) {
-							if ((dynamic_array[row * c + col - 1].getText()
-									.toString()).equals(String.valueOf(r * c))) {
-								// Exchange button with left
-								dynamic_array[(row * c) + col].setText(String
-										.valueOf(r * c));
-								dynamic_array[(row * c) + col]
-										.setBackgroundColor(Color.BLACK);
+							if (col - 1 >= 0) {
+								if ((dynamic_array[row * c + col - 1].getText()
+										.toString()).equals(String.valueOf(r
+										* c))) {
+									// Exchange button with left
+									dynamic_array[(row * c) + col]
+											.setText(String.valueOf(r * c));
+									dynamic_array[(row * c) + col]
+											.setBackgroundColor(Color.BLACK);
 
-								dynamic_array[row * c + col - 1]
-										.setText(current_button);
-								dynamic_array[row * c + col - 1]
-										.setBackgroundResource(android.R.drawable.btn_default);
+									dynamic_array[row * c + col - 1]
+											.setText(current_button);
+									dynamic_array[row * c + col - 1]
+											.setBackgroundResource(android.R.drawable.btn_default);
+								}
 							}
-						}
 
-						if (col + 1 < c) {
-							if ((dynamic_array[row * c + col + 1].getText()
-									.toString()).equals(String.valueOf(r * c))) {
-								// Exchange button with right
-								dynamic_array[(row * c) + col].setText(String
-										.valueOf(r * c));
-								dynamic_array[(row * c) + col]
-										.setBackgroundColor(Color.BLACK);
+							if (col + 1 < c) {
+								if ((dynamic_array[row * c + col + 1].getText()
+										.toString()).equals(String.valueOf(r
+										* c))) {
+									// Exchange button with right
+									dynamic_array[(row * c) + col]
+											.setText(String.valueOf(r * c));
+									dynamic_array[(row * c) + col]
+											.setBackgroundColor(Color.BLACK);
 
-								dynamic_array[row * c + col + 1]
-										.setText(current_button);
-								dynamic_array[row * c + col + 1]
-										.setBackgroundResource(android.R.drawable.btn_default);
+									dynamic_array[row * c + col + 1]
+											.setText(current_button);
+									dynamic_array[row * c + col + 1]
+											.setBackgroundResource(android.R.drawable.btn_default);
+								}
 							}
-						}
 
-						// Check for finish (only when last button is at button
-						// right corner)
-						if ((dynamic_array[r * c - 1].getText().equals(String
-								.valueOf(r * c))))
-							check_finish(r, c);
+							// Check for finish (only when last button is at
+							// button
+							// right corner)
+							if ((dynamic_array[r * c - 1].getText()
+									.equals(String.valueOf(r * c))))
+								check_finish(r, c);
+						}
 					}
 				};
 				btnTag.setOnClickListener(move_listener);
@@ -324,8 +338,55 @@ public class PuzzleActivity extends Activity {
 		}
 
 		// If all buttons are in right position flag will be true
-		// Go back to previous activity
-		if (flag == true)
-			onBackPressed();
+		if (flag == true){
+			playing = false;
+			PuzzleCount("0");
+			PuzzleScoring(String.format("%04d", col*row*10));
+			/*try{
+				thread.time_left = 0;
+				PuzzleCount("N");
+				Thread.sleep(3000);
+				onBackPressed();
+			} catch(InterruptedException e){}*/
+		}
+	}
+	
+	class puzzleScore extends Thread{
+		int time_left = 30;
+		int score = 0;
+		
+		public void run(){
+			while(time_left > 0){
+				try{
+					if(time_left <= 9)
+						PuzzleCount(String.valueOf(time_left));
+					
+					Thread.sleep(1000);
+					
+					time_left--;
+				} catch(InterruptedException e){}
+			}
+			
+			PuzzleCount(String.valueOf(time_left));
+			
+			for(int i=0;i<rrow;i++){
+				for(int j=0;j<ccol;j++){
+					if(dynamic_array[i*ccol + j].getText().equals(String.valueOf((i * ccol) + j + 1)))
+						score += 10;
+				}
+			}
+			
+			PuzzleScoring(String.format("%04d", score));
+			playing = false;
+		}
+	}
+	
+	// If physical back button pressed, clear devices
+	public boolean onKeyDown(int keyCode, android.view.KeyEvent event){
+		thread.time_left = 0;
+		PuzzleCount("N");
+		PuzzleScoring("0000");
+		
+		return super.onKeyDown(keyCode, event);
 	}
 }

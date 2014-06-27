@@ -1,5 +1,5 @@
-/root/mylinux/HW5/obj/local/armeabi/objs/dangercloz_module/TextEditor.o: \
- /root/mylinux/HW5/jni/TextEditor.c \
+/root/mylinux/HW5/obj/local/armeabi/objs/dangercloz_module/Watch.o: \
+ /root/mylinux/HW5/jni/Watch.c \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/jni.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/sys/cdefs.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/sys/cdefs_elf.h \
@@ -53,9 +53,7 @@
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/linux/errno.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm/errno.h \
  /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno.h \
- /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h \
- /root/mylinux/HW5/jni/fpga_dot_font.h \
- /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/android/log.h
+ /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h
 
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/jni.h:
 
@@ -164,7 +162,3 @@
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno.h:
 
 /root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/asm-generic/errno-base.h:
-
-/root/mylinux/HW5/jni/fpga_dot_font.h:
-
-/root/mylinux/android-ndk-r9d/platforms/android-9/arch-arm/usr/include/android/log.h:
