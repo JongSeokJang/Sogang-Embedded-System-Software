@@ -16,8 +16,8 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	int i, length, str_size, text_size;
 	unsigned char led;
 	unsigned char data[4];
-	unsigned char text[32];
-	unsigned char temp[32];
+	unsigned char text[40];
+	unsigned char temp[40];
 
 	// Open fpga text lcd driver
 	if((text_dev = open("/dev/fpga_text_lcd", O_WRONLY)) < 0)
@@ -81,3 +81,30 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	close(fpga_dot);
 	close(fpga_led);
 }       
+
+jstring Java_com_example_androidex_TextActivity_PushSwitch (JNIEnv *env, jobject thiz){
+	int switch_dev, i;
+	unsigned char push_sw[9];
+	unsigned char temp[10];
+	char *str;
+
+	if((switch_dev = open("/dev/fpga_push_switch", O_RDWR)) < 0)
+		perror("/dev/fpga_push_switch open error");
+
+	// Read switch input
+	read(switch_dev, &push_sw, 9);
+
+	// Copy to char array
+	for(i=0;i<9;i++){
+		if(push_sw[i] == 1)
+			temp[i] = '1';
+		else
+			temp[i] = '0';
+	}
+	temp[9] = '\0';
+
+	// Close fpga switch driver
+	close(switch_dev);
+
+	return (*env)->NewStringUTF(env, temp);
+}
