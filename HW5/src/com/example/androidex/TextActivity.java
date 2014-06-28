@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -56,8 +55,14 @@ public class TextActivity extends Activity{
 		modify_listener = new OnClickListener(){
 			@Override
 			public void onClick(View v){
-				length_text.setText("Text Length : " + String.valueOf(text.length()));
-				TextEditor(text.getText().toString());
+				if(text.length() > 32){
+					TextEditor("Error. Too large");
+					text.setText("Error. Too large");
+					length_text.setText("Text Length : " + String.valueOf(text.length()));
+				} else{
+					length_text.setText("Text Length : " + String.valueOf(text.length()));
+					TextEditor(text.getText().toString());
+				}
 			}
 		};
 		
@@ -161,6 +166,16 @@ public class TextActivity extends Activity{
 				temp = PushSwitch();
 				temp2 = temp.toCharArray();
 				
+				if(text.length() > 32){
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							text.setText("Error. Too large");
+							TextEditor("Error. Too large");
+						}
+					});
+				}
+				
 				// Find if there are inputs
 				for(int i=0;i<9;i++){
 					if(temp2[i] != '0'){
@@ -214,75 +229,79 @@ public class TextActivity extends Activity{
 						}
 					} else if(count == 1){	// if there is only one input
 						if (num_flag == 1) {
-							insert_text = text.getText().toString();
-							int text_length = insert_text.length();
+							if(text.length() > 32){
+								TextEditor("Error. Too large");
+								insert_text = "Error. Too large";
+							} else {
+								insert_text = text.getText().toString();
+								int text_length = insert_text.length();
 
-							if (text_length == 0) { // If this is first time to
-													// write
-								int i;
-								for (i = 0; i < 9; i++)
-									if (input[i] == '1')
+								if (text_length == 0) { // If this is first time to write
+									int i;
+									for (i = 0; i < 9; i++)
+										if (input[i] == '1')
+											break;
+
+									switch (i) {
+									case 0:
+										insert_text += ".";
 										break;
-
-								switch (i) {
-								case 0:
-									insert_text += ".";
-									break;
-								case 1:
-									insert_text += "a";
-									break;
-								case 2:
-									insert_text += "d";
-									break;
-								case 3:
-									insert_text += "g";
-									break;
-								case 4:
-									insert_text += "j";
-									break;
-								case 5:
-									insert_text += "m";
-									break;
-								case 6:
-									insert_text += "p";
-									break;
-								case 7:
-									insert_text += "t";
-									break;
-								case 8:
-									insert_text += "w";
-									break;
-								}
-							} else { // If there are already string
-								int i, j;
-								boolean same = false;
-								char[] temp3 = insert_text.toCharArray();
-								char chr = temp3[text_length - 1];
-
-								// check for input switch
-								for (i = 0; i < 9; i++)
-									if (input[i] == '1')
+									case 1:
+										insert_text += "a";
 										break;
-
-								// check for char set
-								for (j = 0; j < 3; j++) {
-									if (temp3[text_length - 1] == char_set[i][j]) {
-										same = true;
+									case 2:
+										insert_text += "d";
+										break;
+									case 3:
+										insert_text += "g";
+										break;
+									case 4:
+										insert_text += "j";
+										break;
+									case 5:
+										insert_text += "m";
+										break;
+									case 6:
+										insert_text += "p";
+										break;
+									case 7:
+										insert_text += "t";
+										break;
+									case 8:
+										insert_text += "w";
 										break;
 									}
-								}
+								} else { // If there are already string
+									int i, j;
+									boolean same = false;
+									char[] temp3 = insert_text.toCharArray();
+									char chr = temp3[text_length - 1];
 
-								// modify to new char if same switch
-								if (same) {
-									if (j == 2)
-										j = 0;
-									else
-										j++;
+									// check for input switch
+									for (i = 0; i < 9; i++)
+										if (input[i] == '1')
+											break;
 
-									temp3[text_length - 1] = char_set[i][j];
-									insert_text = String.copyValueOf(temp3);
-								} else {
-									insert_text += char_set[i][0];
+									// check for char set
+									for (j = 0; j < 3; j++) {
+										if (temp3[text_length - 1] == char_set[i][j]) {
+											same = true;
+											break;
+										}
+									}
+
+									// modify to new char if same switch
+									if (same) {
+										if (j == 2)
+											j = 0;
+										else
+											j++;
+
+										temp3[text_length - 1] = char_set[i][j];
+										insert_text = String.copyValueOf(temp3);
+									} else {
+										insert_text += char_set[i][0];
+									}
 								}
 							}
 
@@ -295,13 +314,20 @@ public class TextActivity extends Activity{
 								}
 							});
 						} else if(num_flag == 2){
-							int i;
-							for(i=0;i<9;i++)
-								if(input[i] == '1')
-									break;
-							
-							insert_text += String.valueOf(i+1);
-							
+							if (text.length() == 32) {
+								TextEditor("Error. Too large");
+								insert_text = "Error. Too large";
+							} else {
+								int i;
+								for (i = 0; i < 9; i++)
+									if (input[i] == '1')
+										break;
+
+								if (insert_text == null)
+									insert_text = String.valueOf(i + 1);
+								else
+									insert_text += String.valueOf(i + 1);
+							}
 							// print on board text
 							runOnUiThread(new Runnable() {
 								@Override

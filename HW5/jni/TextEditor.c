@@ -41,36 +41,48 @@ void Java_com_example_androidex_TextActivity_TextEditor (JNIEnv *env, jobject th
 	const char *str = (*env)->GetStringUTFChars(env, string, 0);
 	length = (*env)->GetStringLength(env, string);
 
-	LOGV("log test %d", length);
+	if (length > 32) {
+		const char *str2 = "Error. Too large";
+		strncat(temp, str2, 16);
+		memset(temp + 16, ' ', 32 - 16);
+		data[0] = '0';
+		data[1] = '0';
+		data[2] = '1';
+		data[3] = '6';
+		write(text_dev, temp, 33);	// fpga text lcd
+		write(fpga_fnd, &data, 4);	// fpga fnd
+		write(fpga_dot, fpga_number[6], str_size);
 
-	if(length == 0){
-		for(i=0;i<32;i++)
-			temp[i] = '\0';
 	} else {
-		text_size = strlen(str);
-		if (text_size > 0) {
-			strncat(temp, str, text_size);
-			memset(temp + text_size, ' ', 32 - text_size);
+		if (length == 0) {
+			for (i = 0; i < 32; i++)
+				temp[i] = '\0';
+		} else {
+			text_size = strlen(str);
+			if (text_size > 0) {
+				strncat(temp, str, text_size);
+				memset(temp + text_size, ' ', 32 - text_size);
+			}
+			for (i = 0; i < text_size; i++)
+				temp[i] = str[i];
 		}
-		for (i = 0; i < text_size; i++)
-			temp[i] = str[i];
+
+		// Convert integer to string format
+		sprintf(data, "%04d", length);
+		led = atoi(data);
+
+		// Get last number of length
+		length = length % 10;
+
+		// Print on devices
+		write(text_dev, temp, 33);	// fpga text lcd
+		write(fpga_fnd, &data, 4);	// fpga fnd
+		if (str[0] == '\0')
+			write(fpga_dot, fpga_set_blank, str_size);
+		else
+			write(fpga_dot, fpga_number[length], str_size);
+		write(fpga_led, &led, 1);
 	}
-
-	// Convert integer to string format
-	sprintf(data, "%04d", length);
-	led = atoi(data);
-
-	// Get last number of length
-	length = length % 10;
-
-	// Print on devices
-	write(text_dev, temp, 32);	// fpga text lcd
-	write(fpga_fnd, &data, 4);	// fpga fnd
-	if(str[0] == '\0')
-		write(fpga_dot, fpga_set_blank, str_size);
-	else
-		write(fpga_dot, fpga_number[length], str_size);
-	write(fpga_led, &led, 1);
 
 	// Free memory allocated for the string
 	(*env)->ReleaseStringUTFChars(env, string, str);
@@ -86,7 +98,6 @@ jstring Java_com_example_androidex_TextActivity_PushSwitch (JNIEnv *env, jobject
 	int switch_dev, i;
 	unsigned char push_sw[9];
 	unsigned char temp[10];
-	char *str;
 
 	if((switch_dev = open("/dev/fpga_push_switch", O_RDWR)) < 0)
 		perror("/dev/fpga_push_switch open error");

@@ -187,9 +187,14 @@ By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by c
 	- Need to work on board->app
 - implemented text editor board->app
 
+**'14. 06. 28.**
+- complete of text editor
+- complete of figrue switch
+- working on watch mode
+
 ### TODO
 - [x] Implement text editor
-- [ ] Implement Figure Switch
+- [x] Implement Figure Switch
 - [ ] Implement Watch
 - [x] Implement Puzzle
 - [ ] Implement My Mode

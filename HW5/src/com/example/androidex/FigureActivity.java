@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -18,6 +19,7 @@ public class FigureActivity extends Activity {
 
 	public native void FigureSwitch(String option, String left);
 	public native void TextPrint(String id, String name);
+	public native String PushSwitch();
 
 	LinearLayout linear;
 	OnClickListener go_listener, main_listener, clear_listener;
@@ -27,6 +29,8 @@ public class FigureActivity extends Activity {
 	String option, temp;
 	hwThread thread;
 	usageThread usage_thread;
+	getSwitch switch_thread;
+	Button btn_go, btn_main, btn_clear;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -40,11 +44,14 @@ public class FigureActivity extends Activity {
 		// Initialize threads
 		thread = new hwThread();
 		usage_thread = new usageThread();
+		switch_thread = new getSwitch();
+		switch_thread.setDaemon(true);
+		switch_thread.start();
 
 		// Initialize objects from view found by ID
-		Button btn_go = (Button) findViewById(R.id.btn_go);
-		Button btn_main = (Button) findViewById(R.id.btn_main);
-		Button btn_clear = (Button) findViewById(R.id.btn_clear);
+		btn_go = (Button) findViewById(R.id.btn_go);
+		btn_main = (Button) findViewById(R.id.btn_main);
+		btn_clear = (Button) findViewById(R.id.btn_clear);
 		input = (EditText) findViewById(R.id.figure_input);
 		usage = (TextView) findViewById(R.id.text_usage);
 		textchar = (TextView) findViewById(R.id.text_char);
@@ -65,17 +72,34 @@ public class FigureActivity extends Activity {
 
 					// Continue only if 3 inputs are in the string
 					if (columns.length == 3) {
+						boolean option_ok = true;
+						
 						// Check if all inputs are numbers
 						Pattern ps = Pattern.compile("^[0-9]+$");
 						if (ps.matcher(columns[0]).matches())
 							time = Integer.parseInt(columns[0]);
 						if (ps.matcher(columns[1]).matches())
 							num = Integer.parseInt(columns[1]);
-						if (ps.matcher(columns[2]).matches())
+						if (ps.matcher(columns[2]).matches()){
 							option = columns[2];
+							char[] temp = option.toCharArray();
+							int count = 0;
+							for(int i=0;i<4;i++){
+								if(temp[i] == '0')
+									count++;
+								else if(temp[i] != '0'){
+									String temp2 = String.valueOf(temp[i]);
+									ps = Pattern.compile("^[1-8]+$");
+									if(!ps.matcher(temp2).matches())
+										option_ok = false;
+								}
+							}
+							if(count != 3)
+								option_ok = false;
+						}
 
 						// Start only when both time and num are not 0
-						if (time != 0 && num != 0) {
+						if (time != 0 && num != 0 && option_ok == true) {
 							if(!thread.isAlive()){
 								thread.setDaemon(true);
 								thread.start();
@@ -99,6 +123,8 @@ public class FigureActivity extends Activity {
 				
 				if(usage_thread.isAlive())
 					usage_thread.stop();
+				
+				switch_thread.flag = false;
 				
 				onBackPressed();
 			}
@@ -284,5 +310,144 @@ public class FigureActivity extends Activity {
 				}
 			});
 		}
+	}
+	
+	class getSwitch extends Thread{
+		boolean flag, zeroes;
+		String temp, text;
+		char[] temp2;
+		char[] switch_input = new char[9];
+		
+		public void run(){
+			flag = true;
+			
+			while(flag){
+				zeroes = true;
+				
+				temp = PushSwitch();
+				temp2 = temp.toCharArray();
+				
+				// Find if there are inputs
+				for(int i=0;i<9;i++){
+					if(temp2[i] != '0'){
+						switch_input[i] = temp2[i];
+						zeroes = false;
+					}
+				}
+				
+				// If input is finished
+				if(zeroes){
+					int count = 0;
+					for(int i=0;i<9;i++){
+						if(switch_input[i] == '1')
+							count++;
+					}
+					
+					if(count == 2){	// if there are 2 inputs
+						int first = -1, second = -1;
+						
+						for(int i=0;i<9;i++){
+							if(switch_input[i] == '1'){
+								if(first == -1)
+									first = i;
+								else
+									second = i;
+							}
+						}
+						
+						if(first == 1 && second == 2){
+							// (2) & (3) switch
+							thread.i = num;
+							usage_thread.flag = false;
+							switch_thread.flag = false;
+							onBackPressed();
+						} else if(first == 3 && second == 4){
+							// (4) & (5) switch
+							if(thread.isAlive()){
+								thread.i = num;
+								thread = new hwThread();
+							}
+							
+							if(usage_thread.isAlive()){
+								usage_thread.flag = false;
+								usage_thread = new usageThread();
+							}
+							
+							// print on board text
+							runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									input.setText("");
+								}
+							});
+						} else if(first == 4 && second == 5){
+							// (5) & (6) switch (Spacing)
+							// print on board text
+							runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									text = input.getText().toString();
+									
+									if(text == null)
+										text = " ";
+									else
+										text += " ";
+									
+									input.setText(text);
+								}
+							});
+						} else if(first == 6 && second == 7){
+							// (7) & (8) switch (Go button)
+							btn_go.post(new Runnable() {
+								@Override
+								public void run() {
+									btn_go.performClick();
+								}
+							});
+						}
+					} else if(count == 1){	// Only 1 input is in
+						int i;
+						for (i = 0; i < 9; i++)
+							if (switch_input[i] == '1')
+								break;
+						
+						if(i == 8)
+							i = -1;
+						
+						text = input.getText().toString();
+						
+						if(text == null)
+							text = String.valueOf(i+1);
+						else
+							text += String.valueOf(i+1);
+						
+						// print on board text
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								input.setText(text);
+							}
+						});
+					}
+					
+					// set to default value
+					for(int i=0;i<9;i++)
+						switch_input[i] = 0;
+				}
+				
+				try{
+					Thread.sleep(10);
+				} catch(InterruptedException e){}
+			}
+		}
+	}
+	
+	// If physical back button pressed, clear devices
+	public boolean onKeyDown(int keyCode, android.view.KeyEvent event){
+		thread.i = num;
+		usage_thread.flag = false;
+		switch_thread.flag = false;
+		
+		return super.onKeyDown(keyCode, event);
 	}
 }
