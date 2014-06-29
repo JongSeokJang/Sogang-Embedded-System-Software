@@ -192,10 +192,5 @@ By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by c
 - complete of figrue switch
 - working on watch mode
 
-### TODO
-- [x] Implement text editor
-- [x] Implement Figure Switch
-- [ ] Implement Watch
-- [x] Implement Puzzle
-- [ ] Implement My Mode
-- [x] Implement Quit
+**'14. 06. 29.**
+- completed all the requirements + custom mode

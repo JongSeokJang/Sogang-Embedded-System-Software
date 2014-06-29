@@ -340,14 +340,9 @@ public class PuzzleActivity extends Activity {
 		// If all buttons are in right position flag will be true
 		if (flag == true){
 			playing = false;
-			PuzzleCount("0");
+			//PuzzleCount("0");
+			thread.time_left = 0;
 			PuzzleScoring(String.format("%04d", col*row*10));
-			/*try{
-				thread.time_left = 0;
-				PuzzleCount("N");
-				Thread.sleep(3000);
-				onBackPressed();
-			} catch(InterruptedException e){}*/
 		}
 	}
 	
@@ -384,6 +379,7 @@ public class PuzzleActivity extends Activity {
 	// If physical back button pressed, clear devices
 	public boolean onKeyDown(int keyCode, android.view.KeyEvent event){
 		thread.time_left = 0;
+		thread.score = 0;
 		PuzzleCount("N");
 		PuzzleScoring("0000");
 		

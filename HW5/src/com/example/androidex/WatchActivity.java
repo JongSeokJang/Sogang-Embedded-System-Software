@@ -19,6 +19,7 @@ public class WatchActivity extends Activity{
 	
 	public native void Watch(String date, String time);
 	public native void WatchFND(String stop);
+	public native String WatchControl();
 
 	LinearLayout linear;
 	Button btn_settime, btn_month, btn_day, btn_hour, btn_minute;
@@ -30,6 +31,7 @@ public class WatchActivity extends Activity{
 	int year, month, day, hour, minute;
 	Calendar cal;
 	stopwatch thread;
+	stopwatchSwitch switch_thread;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +57,9 @@ public class WatchActivity extends Activity{
 		text_stopwatch = (TextView)findViewById(R.id.text_stopwatch);
 		
 		thread = new stopwatch();
+		switch_thread = new stopwatchSwitch();
+		switch_thread.setDaemon(true);
+		switch_thread.start();
 		
 		// Get time on board
 		cal = Calendar.getInstance();
@@ -176,6 +181,7 @@ public class WatchActivity extends Activity{
 				Watch("N", "");
 				WatchFND("0000");
 				thread.flag = false;
+				switch_thread.flag = false;
 				onBackPressed();
 			}
 		};
@@ -223,11 +229,100 @@ public class WatchActivity extends Activity{
 		}
 	}
 	
+	class stopwatchSwitch extends Thread{
+		boolean flag, zeroes;
+		String temp;
+		char[] temp2;
+		char[] switch_input = new char[9];
+		
+		public void run(){
+			flag = true;
+			
+			while(flag){
+				zeroes = true;
+				
+				temp = WatchControl();
+				temp2 = temp.toCharArray();
+				
+				// Find if there are inputs
+				for(int i=0;i<9;i++){
+					if(temp2[i] != '0'){
+						switch_input[i] = temp2[i];
+						zeroes = false;
+					}
+				}
+				
+				// If input is finished
+				if(zeroes){
+					int count = 0;
+					for(int i=0;i<9;i++){
+						if(switch_input[i] == '1')
+							count++;
+					}
+					
+					// Only one input is allowed
+					if(count == 1){
+						int i;
+						for (i = 0; i < 9; i++)
+							if (switch_input[i] == '1')
+								break;
+						
+						switch(i){
+							case 0:	// SW[1]
+								btn_start.post(new Runnable() {
+									@Override
+									public void run() {
+										btn_start.performClick();
+									}
+								});
+								break;
+							case 1:	// SW[2]
+								btn_pause.post(new Runnable() {
+									@Override
+									public void run() {
+										btn_pause.performClick();
+									}
+								});
+								break;
+							case 2:	// SW[3]
+								btn_stop.post(new Runnable() {
+									@Override
+									public void run() {
+										btn_stop.performClick();
+									}
+								});
+								break;
+							case 3:	// SW[4]
+								btn_main.post(new Runnable() {
+									@Override
+									public void run() {
+										btn_main.performClick();
+									}
+								});
+								break;
+							default:	// Other buttons
+								break;
+						}
+					}
+					
+					// set to default value
+					for(int i=0;i<9;i++)
+						switch_input[i] = 0;
+				}
+				
+				try{
+					Thread.sleep(10);
+				} catch(InterruptedException e){}
+			}
+		}
+	}
+	
 	// If physical back button pressed, clear devices
 	public boolean onKeyDown(int keyCode, android.view.KeyEvent event){
 		Watch("N", "");
 		WatchFND("0000");
 		thread.flag = false;
+		switch_thread.flag = false;
 		
 		return super.onKeyDown(keyCode, event);
 	}

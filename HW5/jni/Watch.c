@@ -49,3 +49,29 @@ void JNICALL Java_com_example_androidex_WatchActivity_WatchFND (JNIEnv *env, job
 
 	close(fpga_fnd);
 }
+
+jstring JNICALL Java_com_example_androidex_WatchActivity_WatchControl (JNIEnv *env, jobject thiz){
+	int switch_dev, i;
+	unsigned char push_sw[9];
+	unsigned char temp[10];
+
+	// Open fpga push switch driver
+	if((switch_dev = open("/dev/fpga_push_switch", O_RDWR)) < 0)
+		perror("/dev/fpga_push_switch open error");
+
+	// Read switch input
+	read(switch_dev, &push_sw, 9);
+
+	// Copy to char array
+	for(i=0;i<9;i++){
+		if(push_sw[i] == 1)
+			temp[i] = '1';
+		else
+			temp[i] = '0';
+	}
+	temp[9] = '\0';
+
+	close(switch_dev);
+
+	return (*env)->NewStringUTF(env, temp);
+}
