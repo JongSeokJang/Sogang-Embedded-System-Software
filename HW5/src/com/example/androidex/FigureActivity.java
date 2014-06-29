@@ -142,6 +142,8 @@ public class FigureActivity extends Activity {
 					usage_thread.flag = false;
 					usage_thread = new usageThread();
 				}
+				
+				input.setText("");
 			}
 		};
 
