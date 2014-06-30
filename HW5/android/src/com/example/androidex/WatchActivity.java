@@ -2,11 +2,12 @@ package com.example.androidex;
 
 import java.util.Calendar;
 
-import com.example.androidex.FigureActivity.hwThread;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.content.Context;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -87,6 +88,8 @@ public class WatchActivity extends Activity{
 				String jdate = String.format("%d/%02d/%02d      ", year, month, day);
 				String jtime = String.format("%02d:%02d           ", hour, minute);
 				Watch(jdate, jtime);
+				
+				SystemClock.setCurrentTimeMillis(cal.getTimeInMillis());
 			}
 		};
 		

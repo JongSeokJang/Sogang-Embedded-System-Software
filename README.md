@@ -194,3 +194,8 @@ By using JNI functions in Java environment, implement Assignment 1, 2, 3, 4 by c
 
 **'14. 06. 29.**
 - completed all the requirements + custom mode
+
+### Result
+Completed all the requirements with documentation
+Thanks for viewing this repository
+This is the end of the Sogang Univ. 2014 Embedded System Software

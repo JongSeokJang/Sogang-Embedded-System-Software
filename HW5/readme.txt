@@ -10,6 +10,15 @@ Device driver used
 - fpga_led_driver.ko		(major number : 260)
 - fpga_dot_driver.ko		(major number : 262)
 - fpga_push_switch_driver.ko	(major number : 265)
+
+By using insdev.sh file included, in minicom mode
+sh insdev will insert all drivers automatically
+
+=========================================================
+Figure Switch Mode
+- Refresh CPU usage every 1 second
+- FPGA PUSH SWITCH 9 works as 0 on application
+
 =========================================================
 Puzzle Mode Score Calculation
 - 30 second is given to solve puzzle
@@ -18,6 +27,7 @@ Puzzle Mode Score Calculation
 	1 2 3
 	4 6 5
 	7 - 9	== (1+1+1+1+1) * 10 = 50
+
 =========================================================
 Custom Mode Introduction
 - Press switch button on board then application will respond
